@@ -1,3 +1,25 @@
+export type TeamRating = {
+  season: number;
+  team_id: number;
+  team_display_name: string;
+  team_abbreviation: string;
+  team_location: string;
+  team_name: string;
+  team_logo: string;
+  team_color: string;
+  team_alternate_color: string;
+  wins: number;
+  losses: number;
+  net: number;
+  ortg: number;
+  drtg: number;
+  sos: number;
+  osos: number;
+  dsos: number;
+  pace: number;
+  games: number;
+};
+
 export type TeamSeasonStats = {
   season: number;
   team_id: number;
@@ -43,31 +65,35 @@ export type TeamSeasonStats = {
   opp_turnovers: number;
 };
 
-export async function getTeamStats(): Promise<TeamSeasonStats[]> {
-  const res = await fetch("/data/team_season_stats.json");
-  if (!res.ok) {
-    throw new Error("Failed to load team stats");
-  }
+export async function getTeamRatings(): Promise<TeamRating[]> {
+  const res = await fetch("/data/team_ratings.json");
+  if (!res.ok) throw new Error("Failed to load team ratings");
   return res.json();
 }
 
-export function getSeasons(data: TeamSeasonStats[]): number[] {
+export async function getTeamStats(): Promise<TeamSeasonStats[]> {
+  const res = await fetch("/data/team_season_stats.json");
+  if (!res.ok) throw new Error("Failed to load team stats");
+  return res.json();
+}
+
+export function getSeasons(data: { season: number }[]): number[] {
   const seasons = [...new Set(data.map((d) => d.season))];
   return seasons.sort((a, b) => b - a);
 }
 
-export function filterBySeason(
-  data: TeamSeasonStats[],
+export function filterBySeason<T extends { season: number }>(
+  data: T[],
   season: number
-): TeamSeasonStats[] {
+): T[] {
   return data.filter((d) => d.season === season);
 }
 
-export function rankTeams(
-  data: TeamSeasonStats[],
-  column: keyof TeamSeasonStats,
+export function rankTeams<T extends Record<string, unknown>>(
+  data: T[],
+  column: keyof T,
   ascending: boolean = false
-): (TeamSeasonStats & { rank: number })[] {
+): (T & { rank: number })[] {
   const sorted = [...data].sort((a, b) => {
     const aVal = a[column] as number;
     const bVal = b[column] as number;
@@ -85,4 +111,8 @@ export function getRankColor(rank: number, total: number): string {
   if (pct >= 0.75) return "rgba(196, 92, 92, 0.2)";
   if (pct >= 0.6) return "rgba(196, 92, 92, 0.08)";
   return "transparent";
+}
+
+export function formatSeason(season: number): string {
+  return `${season - 1}–${String(season).slice(2)}`;
 }
