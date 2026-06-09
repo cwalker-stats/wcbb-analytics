@@ -9,7 +9,7 @@ message("Pulling WBB team box scores for seasons ", min(seasons_to_pull), " to "
 raw_data <- wehoop::load_wbb_team_box(seasons = seasons_to_pull)
 
 regular_season <- raw_data |>
-  dplyr::filter(season_type == 2)
+  dplyr::filter(season_type %in% c(2, 3))
 
 readr::write_csv(regular_season, "data/raw/wbb_team_box_raw.csv")
 

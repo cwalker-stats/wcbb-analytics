@@ -50,7 +50,7 @@ export default function Home() {
                 marginTop: "0.25rem",
               }}
             >
-              Women&apos;s College Basketball Team Statistics
+              Women&apos;s College Basketball Analytics
             </p>
           </div>
 

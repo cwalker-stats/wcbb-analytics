@@ -34,13 +34,13 @@ type ColumnDef = {
 };
 
 const COLUMNS: ColumnDef[] = [
-  { key: "net", label: "NET", ascending: false, decimals: 1, showPlus: true },
-  { key: "ortg", label: "ORTG", ascending: false, decimals: 1, showPlus: false },
-  { key: "drtg", label: "DRTG", ascending: true, decimals: 1, showPlus: false },
+  { key: "net", label: "AdjEM", ascending: false, decimals: 1, showPlus: true },
+  { key: "ortg", label: "AdjO", ascending: false, decimals: 1, showPlus: false },
+  { key: "drtg", label: "AdjD", ascending: true, decimals: 1, showPlus: false },
   { key: "sos", label: "SOS", ascending: false, decimals: 2, showPlus: true },
   { key: "osos", label: "OSOS", ascending: false, decimals: 2, showPlus: true },
   { key: "dsos", label: "DSOS", ascending: false, decimals: 2, showPlus: true },
-  { key: "pace", label: "PACE", ascending: false, decimals: 1, showPlus: false },
+  { key: "pace", label: "AdjT", ascending: false, decimals: 1, showPlus: false },
 ];
 
 export default function RatingsTable() {
@@ -123,7 +123,7 @@ export default function RatingsTable() {
               borderBottom: "1px solid var(--border)",
               color: "var(--text-muted)",
               fontSize: "0.75rem",
-              textTransform: "uppercase",
+              textTransform: "none",
               letterSpacing: "0.05em",
             }}>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500" }}>Rk</th>
