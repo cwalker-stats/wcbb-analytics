@@ -4,8 +4,14 @@ library(janitor)
 library(jsonlite)
 
 raw <- readr::read_csv("data/raw/wbb_team_box_raw.csv", show_col_types = FALSE)
+d1_ids <- readr::read_csv("data/raw/d1_team_ids.csv", show_col_types = FALSE)
 
-opponent_stats <- raw |>
+raw_d1 <- raw |>
+  dplyr::inner_join(d1_ids, by = c("season", "team_id"))
+
+message("Rows after D1 filter: ", nrow(raw_d1), " (was ", nrow(raw), ")")
+
+opponent_stats <- raw_d1 |>
   dplyr::select(
     game_id,
     opp_team_id = team_id,
@@ -24,7 +30,7 @@ opponent_stats <- raw |>
     opp_turnovers = total_turnovers
   )
 
-joined <- raw |>
+joined <- raw_d1 |>
   dplyr::left_join(opponent_stats,
                    by = dplyr::join_by(game_id, opponent_team_id == opp_team_id))
 
