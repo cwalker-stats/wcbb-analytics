@@ -71,6 +71,8 @@ team_season_stats <- joined |>
     opp_fta = mean(opp_fta, na.rm = TRUE),
     opp_ft_pct = mean(opp_ft_pct, na.rm = TRUE),
     opp_tot_reb = mean(opp_tot_reb, na.rm = TRUE),
+    opp_off_reb = mean(opp_off_reb, na.rm = TRUE),
+    opp_def_reb = mean(opp_def_reb, na.rm = TRUE),
     opp_turnovers = mean(opp_turnovers, na.rm = TRUE),
     .groups = "drop"
   ) |>
