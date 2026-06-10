@@ -313,7 +313,6 @@ export default function FourFactorsTable() {
                         color: "var(--text-primary)",
                         fontWeight: sortCol === col.key ? "600" : "400",
                         borderRight: isLastAdj || isLastOff ? "2px solid var(--border)" : undefined,
-                        borderLeft: isLastAdj ? "2px solid var(--border)" : undefined,
                       }}
                     >
                       <div style={{ fontSize: "0.875rem" }}>{formatted}</div>
