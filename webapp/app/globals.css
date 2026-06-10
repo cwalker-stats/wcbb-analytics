@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #111118;
-  --bg-card: #16161f;
-  --bg-hover: #1e1e2a;
-  --border: #2a2a3a;
-  --text-primary: #f0f0f5;
-  --text-secondary: #9090a8;
-  --text-muted: #5a5a70;
-  --accent: #6c8ebf;
-  --accent-bright: #89aadb;
-  --positive: #4a9e6b;
-  --negative: #c45c5c;
+  --bg-primary: #f8f9fb;
+  --bg-secondary: #ffffff;
+  --bg-card: #f0f2f5;
+  --bg-hover: #e8eaed;
+  --border: #e0e3e8;
+  --text-primary: #0f1117;
+  --text-secondary: #4a5060;
+  --text-muted: #8a909e;
+  --accent: #3a5fa0;
+  --accent-bright: #2d4f8a;
+  --positive: #1e7a45;
+  --negative: #b83232;
 }
 
 * {
@@ -34,7 +34,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: var(--bg-card);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -44,4 +44,46 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+.tooltip-container {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-box {
+  visibility: hidden;
+  opacity: 0;
+  background-color: #1a1d2e;
+  color: #f0f0f5;
+  font-size: 0.72rem;
+  font-weight: 400;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  width: 200px;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.tooltip-box::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1a1d2e;
+}
+
+.tooltip-container:hover .tooltip-box {
+  visibility: visible;
+  opacity: 1;
 }

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import React from "react";
+import ReactDOM from "react-dom";
 import {
   TeamRating,
   getTeamRatings,
@@ -31,17 +33,140 @@ type ColumnDef = {
   ascending: boolean;
   decimals: number;
   showPlus: boolean;
+  tooltip: string;
 };
 
 const COLUMNS: ColumnDef[] = [
-  { key: "net", label: "AdjEM", ascending: false, decimals: 1, showPlus: true },
-  { key: "ortg", label: "AdjO", ascending: false, decimals: 1, showPlus: false },
-  { key: "drtg", label: "AdjD", ascending: true, decimals: 1, showPlus: false },
-  { key: "sos", label: "SOS", ascending: false, decimals: 2, showPlus: true },
-  { key: "osos", label: "OSOS", ascending: false, decimals: 2, showPlus: true },
-  { key: "dsos", label: "DSOS", ascending: false, decimals: 2, showPlus: true },
-  { key: "pace", label: "AdjT", ascending: false, decimals: 1, showPlus: false },
+  {
+    key: "net",
+    label: "AdjEM",
+    ascending: false,
+    decimals: 1,
+    showPlus: true,
+    tooltip: "Adjusted scoring margin per 100 possessions.",
+  },
+  {
+    key: "ortg",
+    label: "AdjO",
+    ascending: false,
+    decimals: 1,
+    showPlus: false,
+    tooltip: "Adjusted points scored per 100 possessions.",
+  },
+  {
+    key: "drtg",
+    label: "AdjD",
+    ascending: true,
+    decimals: 1,
+    showPlus: false,
+    tooltip: "Adjusted points allowed per 100 possessions.",
+  },
+  {
+    key: "sos",
+    label: "SOS",
+    ascending: false,
+    decimals: 2,
+    showPlus: true,
+    tooltip: "Schedule strength relative to average.",
+  },
+  {
+    key: "osos",
+    label: "OSOS",
+    ascending: false,
+    decimals: 2,
+    showPlus: true,
+    tooltip: "Opponent defensive strength relative to average.",
+  },
+  {
+    key: "dsos",
+    label: "DSOS",
+    ascending: false,
+    decimals: 2,
+    showPlus: true,
+    tooltip: "Opponent offensive strength relative to average.",
+  },
+  {
+    key: "pace",
+    label: "AdjT",
+    ascending: false,
+    decimals: 1,
+    showPlus: false,
+    tooltip: "Adjusted possessions per 40 minutes.",
+  },
 ];
+
+type TooltipThProps = {
+  col: ColumnDef;
+  sortCol: keyof TeamRating;
+  sortAsc: boolean;
+  onSort: (key: keyof TeamRating, defaultAsc: boolean) => void;
+};
+
+function TooltipTh({ col, sortCol, sortAsc, onSort }: TooltipThProps) {
+  const [tooltip, setTooltip] = useState<{ x: number; y: number } | null>(null);
+  const thRef = useRef<HTMLTableCellElement>(null);
+
+  const handleMouseEnter = () => {
+    if (thRef.current) {
+      const rect = thRef.current.getBoundingClientRect();
+      setTooltip({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 8,
+      });
+    }
+  };
+
+  const handleMouseLeave = () => setTooltip(null);
+
+  return (
+    <>
+      <th
+        ref={thRef}
+        onClick={() => onSort(col.key, col.ascending)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          padding: "0.6rem 0.75rem",
+          textAlign: "center",
+          fontWeight: "500",
+          cursor: "pointer",
+          color: sortCol === col.key ? "var(--accent-bright)" : "var(--text-muted)",
+          userSelect: "none",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {col.label} {sortCol === col.key ? (sortAsc ? "↑" : "↓") : ""}
+      </th>
+      {tooltip && typeof document !== "undefined" &&
+        ReactDOM.createPortal(
+          <div style={{
+            position: "fixed",
+            left: tooltip.x,
+            top: tooltip.y,
+            transform: "translate(-50%, -100%)",
+            backgroundColor: "#1a1d2e",
+            color: "#f0f0f5",
+            fontSize: "0.72rem",
+            padding: "0.5rem 0.65rem",
+            borderRadius: "6px",
+            width: "auto",
+            maxWidth: "320px",
+            whiteSpace: "nowrap",
+            zIndex: 9999,
+            pointerEvents: "none",
+            lineHeight: "1.4",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            textAlign: "left",
+            fontWeight: "400",
+          }}>
+            {col.tooltip}
+          </div>,
+          document.body
+        )
+      }
+    </>
+  );
+}
 
 export default function RatingsTable() {
   const [allData, setAllData] = useState<TeamRating[]>([]);
@@ -116,35 +241,25 @@ export default function RatingsTable() {
         <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{total} teams</span>
       </div>
 
-      <div style={{ overflowX: "auto" }}>
+      <div style={{ overflowX: "auto", overflowY: "visible" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
-          <thead>
+          <thead style={{ overflow: "visible" }}>
             <tr style={{
-              borderBottom: "1px solid var(--border)",
-              color: "var(--text-muted)",
+              borderBottom: "2px solid var(--border)",
               fontSize: "0.75rem",
-              textTransform: "none",
-              letterSpacing: "0.05em",
+              letterSpacing: "0.03em",
             }}>
-              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500" }}>Rk</th>
-              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500" }}>Team</th>
-              <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500" }}>W-L</th>
+              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Rk</th>
+              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Team</th>
+              <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500", color: "var(--text-muted)" }}>W-L</th>
               {COLUMNS.map((col) => (
-                <th
+                <TooltipTh
                   key={col.key}
-                  onClick={() => handleSort(col.key, col.ascending)}
-                  style={{
-                    padding: "0.6rem 0.75rem",
-                    textAlign: "center",
-                    fontWeight: "500",
-                    cursor: "pointer",
-                    color: sortCol === col.key ? "var(--accent-bright)" : "var(--text-muted)",
-                    userSelect: "none",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {col.label} {sortCol === col.key ? (sortAsc ? "↑" : "↓") : ""}
-                </th>
+                  col={col}
+                  sortCol={sortCol}
+                  sortAsc={sortAsc}
+                  onSort={handleSort}
+                />
               ))}
             </tr>
           </thead>
@@ -154,7 +269,7 @@ export default function RatingsTable() {
                 key={`${team.team_id}-${team.season}`}
                 style={{
                   borderBottom: "1px solid var(--border)",
-                  backgroundColor: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)",
+                  backgroundColor: i % 2 === 0 ? "transparent" : "var(--bg-card)",
                 }}
               >
                 <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-muted)", fontSize: "0.75rem" }}>
