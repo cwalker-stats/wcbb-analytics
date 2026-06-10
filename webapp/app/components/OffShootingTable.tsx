@@ -5,7 +5,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { getSeasons, filterBySeason, getRankColor, formatSeason } from "../../lib/data";
 
-type FourFactors = {
+type ShootingStats = {
   season: number;
   team_id: number;
   team_display_name: string;
@@ -19,18 +19,18 @@ type FourFactors = {
   losses: number;
   games: number;
   net: number;
-  off_efg: number;
-  off_to_pct: number;
-  off_or_pct: number;
-  off_ftr: number;
-  def_efg: number;
-  def_to_pct: number;
-  def_or_pct: number;
-  def_ftr: number;
+  efg_pct: number;
+  ts_pct: number;
+  fg2_pct: number;
+  fg3_pct_off: number;
+  fg3a_rate: number;
+  fg3m_rate: number;
+  ftr: number;
+  ft_pct_off: number;
 };
 
 type ColumnDef = {
-  key: keyof FourFactors;
+  key: keyof ShootingStats;
   label: string;
   ascending: boolean;
   tooltip: string;
@@ -45,33 +45,30 @@ const ADJ_COLUMNS: ColumnDef[] = [
   },
 ];
 
-const OFF_COLUMNS: ColumnDef[] = [
-  { key: "off_efg", label: "eFG%", ascending: false, tooltip: "Shooting efficiency, accounting for three-pointers." },
-  { key: "off_to_pct", label: "TO%", ascending: true, tooltip: "Turnovers committed per possession." },
-  { key: "off_or_pct", label: "ORB%", ascending: false, tooltip: "Percentage of available offensive rebounds secured." },
-  { key: "off_ftr", label: "FTr", ascending: false, tooltip: "Free throw attempts per field goal attempt." },
+const SHOOTING_COLUMNS: ColumnDef[] = [
+  { key: "efg_pct", label: "eFG%", ascending: false, tooltip: "Shooting efficiency, accounting for three-pointers." },
+  { key: "ts_pct", label: "TS%", ascending: false, tooltip: "Scoring efficiency, including free throws." },
+  { key: "fg2_pct", label: "2P%", ascending: false, tooltip: "Two-point field goal percentage." },
+  { key: "fg3_pct_off", label: "3P%", ascending: false, tooltip: "Three-point field goal percentage." },
+  { key: "fg3a_rate", label: "3PAr", ascending: false, tooltip: "Share of field goal attempts taken from three." },
+  { key: "fg3m_rate", label: "3MR", ascending: false, tooltip: "Share of made field goals that are three-pointers." },
+  { key: "ftr", label: "FTr", ascending: false, tooltip: "Free throw attempts per field goal attempt." },
+  { key: "ft_pct_off", label: "FT%", ascending: false, tooltip: "Free throw percentage." },
 ];
 
-const DEF_COLUMNS: ColumnDef[] = [
-  { key: "def_efg", label: "eFG%", ascending: true, tooltip: "Opponent shooting efficiency, accounting for three-pointers." },
-  { key: "def_to_pct", label: "TO%", ascending: false, tooltip: "Turnovers forced per opponent possession." },
-  { key: "def_or_pct", label: "ORB%", ascending: true, tooltip: "Percentage of available offensive rebounds allowed." },
-  { key: "def_ftr", label: "FTr", ascending: true, tooltip: "Opponent free throw attempts per field goal attempt." },
-];
+const ALL_COLUMNS = [...ADJ_COLUMNS, ...SHOOTING_COLUMNS];
 
-const ALL_COLUMNS = [...ADJ_COLUMNS, ...OFF_COLUMNS, ...DEF_COLUMNS];
-
-async function getFourFactors(): Promise<FourFactors[]> {
-  const res = await fetch("/data/four_factors.json");
-  if (!res.ok) throw new Error("Failed to load four factors data");
+async function getShootingStats(): Promise<ShootingStats[]> {
+  const res = await fetch("/data/shooting.json");
+  if (!res.ok) throw new Error("Failed to load shooting data");
   return res.json();
 }
 
 type TooltipThProps = {
   col: ColumnDef;
-  sortCol: keyof FourFactors;
+  sortCol: keyof ShootingStats;
   sortAsc: boolean;
-  onSort: (key: keyof FourFactors, defaultAsc: boolean) => void;
+  onSort: (key: keyof ShootingStats, defaultAsc: boolean) => void;
 };
 
 function TooltipTh({ col, sortCol, sortAsc, onSort }: TooltipThProps) {
@@ -135,17 +132,17 @@ function TooltipTh({ col, sortCol, sortAsc, onSort }: TooltipThProps) {
   );
 }
 
-export default function FourFactorsTable() {
-  const [allData, setAllData] = useState<FourFactors[]>([]);
+export default function OffShootingTable() {
+  const [allData, setAllData] = useState<ShootingStats[]>([]);
   const [seasons, setSeasons] = useState<number[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<number>(2026);
-  const [sortCol, setSortCol] = useState<keyof FourFactors>("net");
+  const [sortCol, setSortCol] = useState<keyof ShootingStats>("net");
   const [sortAsc, setSortAsc] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getFourFactors()
+    getShootingStats()
       .then((data) => {
         setAllData(data);
         const availableSeasons = getSeasons(data);
@@ -172,7 +169,7 @@ export default function FourFactorsTable() {
 
   const total = ranked.length;
 
-  const handleSort = (col: keyof FourFactors, defaultAsc: boolean) => {
+  const handleSort = (col: keyof ShootingStats, defaultAsc: boolean) => {
     if (sortCol === col) {
       setSortAsc(!sortAsc);
     } else {
@@ -181,7 +178,7 @@ export default function FourFactorsTable() {
     }
   };
 
-  const getColRank = (team: FourFactors, col: ColumnDef): number => {
+  const getColRank = (team: ShootingStats, col: ColumnDef): number => {
     const sorted = [...seasonData].sort((a, b) => {
       const aVal = a[col.key] as number;
       const bVal = b[col.key] as number;
@@ -227,38 +224,11 @@ export default function FourFactorsTable() {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
           <thead>
-            <tr>
-              <th colSpan={4} style={{ padding: 0, border: "none", backgroundColor: "transparent" }} />
-              <th colSpan={4} style={{ ...headerStyle, backgroundColor: "rgba(74,158,107,0.06)", borderRight: "2px solid var(--border)" }}>
-                OFF. FOUR FACTORS
-              </th>
-              <th colSpan={4} style={{ ...headerStyle, backgroundColor: "rgba(196,92,92,0.06)" }}>
-                DEF. FOUR FACTORS
-              </th>
-            </tr>
             <tr style={{ borderBottom: "2px solid var(--border)", fontSize: "0.75rem" }}>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Rk</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Team</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500", color: "var(--text-muted)" }}>W-L</th>
-              {ADJ_COLUMNS.map((col) => (
-                <TooltipTh
-                  key={col.key}
-                  col={col}
-                  sortCol={sortCol}
-                  sortAsc={sortAsc}
-                  onSort={handleSort}
-                />
-              ))}
-              {OFF_COLUMNS.map((col) => (
-                <TooltipTh
-                  key={col.key}
-                  col={col}
-                  sortCol={sortCol}
-                  sortAsc={sortAsc}
-                  onSort={handleSort}
-                />
-              ))}
-              {DEF_COLUMNS.map((col) => (
+              {ALL_COLUMNS.map((col) => (
                 <TooltipTh
                   key={col.key}
                   col={col}
@@ -296,13 +266,13 @@ export default function FourFactorsTable() {
                 <td style={{ padding: "0.6rem 0.75rem", textAlign: "center", color: "var(--text-secondary)" }}>
                   {team.wins}-{team.losses}
                 </td>
-                {ALL_COLUMNS.map((col, i) => {
+                {ALL_COLUMNS.map((col) => {
                   const val = team[col.key] as number;
                   const colRank = getColRank(team, col);
                   const bg = getRankColor(colRank, total);
-                  const isLastAdj = i === ADJ_COLUMNS.length - 1;
-                  const isLastOff = i === ADJ_COLUMNS.length + OFF_COLUMNS.length - 1;
-                  const formatted = col.key === "net" && val > 0 ? `+${val.toFixed(1)}` : val.toFixed(1);
+                  const formatted = col.key === "net" && val > 0
+                    ? `+${val.toFixed(1)}`
+                    : val.toFixed(1);
                   return (
                     <td
                       key={col.key}
@@ -312,7 +282,7 @@ export default function FourFactorsTable() {
                         backgroundColor: bg,
                         color: "var(--text-primary)",
                         fontWeight: sortCol === col.key ? "600" : "400",
-                        borderRight: isLastAdj || isLastOff ? "2px solid var(--border)" : undefined,
+                        borderRight: col.key === "net" ? "2px solid var(--border)" : undefined,
                       }}
                     >
                       <div style={{ fontSize: "0.875rem" }}>{formatted}</div>
