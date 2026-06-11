@@ -19,14 +19,14 @@ type ShootingStats = {
   losses: number;
   games: number;
   net: number;
-  efg_pct: number;
-  ts_pct: number;
-  fg2_pct: number;
-  fg3_pct_off: number;
-  fg3a_rate: number;
-  fg3m_rate: number;
-  ftr: number;
-  ft_pct_off: number;
+  def_efg_pct: number;
+  def_ts_pct: number;
+  def_fg2_pct: number;
+  def_fg3_pct: number;
+  def_fg3a_rate: number;
+  def_fg3m_rate: number;
+  def_ftr: number;
+  def_ft_pct: number;
 };
 
 type ColumnDef = {
@@ -46,16 +46,16 @@ const ADJ_COLUMNS: ColumnDef[] = [
 ];
 
 const EFF_COLUMNS: ColumnDef[] = [
-  { key: "efg_pct", label: "eFG%", ascending: false, tooltip: "Shooting efficiency, accounting for three-pointers." },
-  { key: "ts_pct", label: "TS%", ascending: false, tooltip: "Scoring efficiency, including free throws." },
-  { key: "fg2_pct", label: "2P%", ascending: false, tooltip: "Two-point field goal percentage." },
-  { key: "fg3_pct_off", label: "3P%", ascending: false, tooltip: "Three-point field goal percentage." },
+  { key: "def_efg_pct", label: "eFG%", ascending: true, tooltip: "Opponent shooting efficiency, accounting for three-pointers." },
+  { key: "def_ts_pct", label: "TS%", ascending: true, tooltip: "Opponent scoring efficiency, including free throws." },
+  { key: "def_fg2_pct", label: "2P%", ascending: true, tooltip: "Opponent two-point field goal percentage." },
+  { key: "def_fg3_pct", label: "3P%", ascending: true, tooltip: "Opponent three-point field goal percentage." },
 ];
 
 const PROFILE_COLUMNS: ColumnDef[] = [
-  { key: "fg3a_rate", label: "3PAr", ascending: false, tooltip: "Share of field goal attempts taken from three." },
-  { key: "fg3m_rate", label: "3PMr", ascending: false, tooltip: "Share of made field goals that are three-pointers." },
-  { key: "ftr", label: "FTr", ascending: false, tooltip: "Free throw attempts per field goal attempt." },
+  { key: "def_fg3a_rate", label: "3PAr", ascending: true, tooltip: "Share of opponent field goal attempts taken from three." },
+  { key: "def_fg3m_rate", label: "3PMr", ascending: true, tooltip: "Share of opponent made field goals that are three-pointers." },
+  { key: "def_ftr", label: "FTr", ascending: true, tooltip: "Opponent free throw attempts per field goal attempt." },
 ];
 
 const ALL_COLUMNS = [...ADJ_COLUMNS, ...EFF_COLUMNS, ...PROFILE_COLUMNS];
@@ -134,7 +134,7 @@ function TooltipTh({ col, sortCol, sortAsc, onSort }: TooltipThProps) {
   );
 }
 
-export default function OffShootingTable() {
+export default function DefShootingTable() {
   const [allData, setAllData] = useState<ShootingStats[]>([]);
   const [seasons, setSeasons] = useState<number[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<number>(2026);
@@ -228,11 +228,11 @@ export default function OffShootingTable() {
           <thead>
             <tr>
               <th colSpan={4} style={{ padding: 0, border: "none", backgroundColor: "transparent" }} />
-              <th colSpan={4} style={{ ...headerStyle, backgroundColor: "rgba(74,158,107,0.06)", borderRight: "2px solid var(--border)" }}>
-                OFF. EFFICIENCY
+              <th colSpan={4} style={{ ...headerStyle, backgroundColor: "rgba(196,92,92,0.06)", borderRight: "2px solid var(--border)" }}>
+                DEF. EFFICIENCY
               </th>
-              <th colSpan={3} style={{ ...headerStyle, backgroundColor: "rgba(74,158,107,0.04)" }}>
-                OFF. SHOT PROFILE
+              <th colSpan={3} style={{ ...headerStyle, backgroundColor: "rgba(196,92,92,0.04)" }}>
+                DEF. SHOT PROFILE
               </th>
             </tr>
             <tr style={{ borderBottom: "2px solid var(--border)", fontSize: "0.75rem" }}>
@@ -293,7 +293,7 @@ export default function OffShootingTable() {
                         backgroundColor: bg,
                         color: "var(--text-primary)",
                         fontWeight: sortCol === col.key ? "600" : "400",
-                        borderRight: col.key === "net" || col.key === "fg3_pct_off" ? "2px solid var(--border)" : undefined,
+                        borderRight: col.key === "net" || col.key === "def_fg3_pct" ? "2px solid var(--border)" : undefined,
                       }}
                     >
                       <div style={{ fontSize: "0.875rem" }}>{formatted}</div>

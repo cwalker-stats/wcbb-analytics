@@ -4,6 +4,7 @@ import { useState } from "react";
 import RatingsTable from "./components/RatingsTable";
 import FourFactorsTable from "./components/FourFactorsTable";
 import OffShootingTable from "./components/OffShootingTable";
+import DefShootingTable from "./components/DefShootingTable";
 
 const TABS = [
   { id: "ratings", label: "Ratings" },
@@ -97,24 +98,7 @@ export default function Home() {
         {activeTab === "ratings" && <RatingsTable />}
         {activeTab === "four-factors" && <FourFactorsTable />}
         {activeTab === "off-shooting" && <OffShootingTable />}
-
-        {activeTab === "def-shooting" && (
-          <div>
-            <h2
-              style={{
-                fontSize: "1.25rem",
-                fontWeight: "600",
-                color: "var(--text-primary)",
-                marginBottom: "1rem",
-              }}
-            >
-              Defensive Shooting
-            </h2>
-            <p style={{ color: "var(--text-secondary)" }}>
-              Defensive shooting statistics coming soon.
-            </p>
-          </div>
-        )}
+        {activeTab === "def-shooting" && <DefShootingTable />}
 
         {activeTab === "misc" && (
           <div>
