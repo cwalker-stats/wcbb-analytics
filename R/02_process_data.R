@@ -27,6 +27,9 @@ opponent_stats <- raw_d1 |>
     opp_off_reb = offensive_rebounds,
     opp_def_reb = defensive_rebounds,
     opp_tot_reb = total_rebounds,
+    opp_assists = assists,
+    opp_steals  = steals,
+    opp_blocks  = blocks,
     opp_turnovers = total_turnovers
   )
 
@@ -73,6 +76,9 @@ team_season_stats <- joined |>
     opp_tot_reb = mean(opp_tot_reb, na.rm = TRUE),
     opp_off_reb = mean(opp_off_reb, na.rm = TRUE),
     opp_def_reb = mean(opp_def_reb, na.rm = TRUE),
+    opp_assists = mean(opp_assists, na.rm = TRUE),
+    opp_steals  = mean(opp_steals, na.rm = TRUE),
+    opp_blocks  = mean(opp_blocks, na.rm = TRUE),
     opp_turnovers = mean(opp_turnovers, na.rm = TRUE),
     .groups = "drop"
   ) |>
