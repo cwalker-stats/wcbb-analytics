@@ -122,7 +122,7 @@ function TooltipTh({ col, sortCol, sortAsc, onSort }: TooltipThProps) {
     <>
       <th
         ref={thRef}
-        onClick={() => onSort(col.key, col.ascending)}
+        onClick={() => { onSort(col.key, col.ascending); setTooltip(null); }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         style={{
@@ -133,6 +133,7 @@ function TooltipTh({ col, sortCol, sortAsc, onSort }: TooltipThProps) {
           color: sortCol === col.key ? "var(--accent-bright)" : "var(--text-muted)",
           userSelect: "none",
           whiteSpace: "nowrap",
+          minWidth: "72px",
         }}
       >
         {col.label} {sortCol === col.key ? (sortAsc ? "↑" : "↓") : ""}

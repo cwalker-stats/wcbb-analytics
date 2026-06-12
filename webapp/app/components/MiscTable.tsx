@@ -93,7 +93,7 @@ function TooltipTh({ col, sortCol, sortAsc, onSort }: TooltipThProps) {
     <>
       <th
         ref={thRef}
-        onClick={() => onSort(col.key, col.ascending)}
+        onClick={() => { onSort(col.key, col.ascending); setTooltip(null); }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setTooltip(null)}
         style={{
@@ -104,6 +104,7 @@ function TooltipTh({ col, sortCol, sortAsc, onSort }: TooltipThProps) {
           color: sortCol === col.key ? "var(--accent-bright)" : "var(--text-muted)",
           userSelect: "none",
           whiteSpace: "nowrap",
+          minWidth: "72px",
         }}
       >
         {col.label} {sortCol === col.key ? (sortAsc ? "↑" : "↓") : ""}
@@ -242,7 +243,7 @@ export default function MiscTable() {
             </tr>
             <tr style={{ borderBottom: "2px solid var(--border)", fontSize: "0.75rem" }}>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Rk</th>
-              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Team</th>
+              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)", width: "1%" }}>Team</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500", color: "var(--text-muted)" }}>W-L</th>
               {ALL_COLUMNS.map((col) => (
                 <TooltipTh
@@ -268,14 +269,14 @@ export default function MiscTable() {
                   {team.rank}
                 </td>
                 <td style={{ padding: "0.6rem 0.75rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", whiteSpace: "nowrap" }}>
                     <img
                       src={team.team_logo}
                       alt={team.team_display_name}
                       style={{ width: "24px", height: "24px", objectFit: "contain" }}
                     />
-                    <span style={{ color: "var(--text-primary)", fontWeight: "500" }}>
-                      {team.team_display_name}
+                    <span style={{ color: "var(--text-primary)", fontWeight: "500", whiteSpace: "nowrap" }}>
+                      {team.team_location}
                     </span>
                   </div>
                 </td>
