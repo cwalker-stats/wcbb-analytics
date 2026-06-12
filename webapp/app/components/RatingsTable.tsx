@@ -241,16 +241,16 @@ export default function RatingsTable() {
         <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{total} teams</span>
       </div>
 
-      <div style={{ overflowX: "auto", overflowY: "visible" }}>
+      <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
-          <thead style={{ overflow: "visible" }}>
+          <thead>
             <tr style={{
               borderBottom: "2px solid var(--border)",
               fontSize: "0.75rem",
               letterSpacing: "0.03em",
             }}>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Rk</th>
-              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)", position: "sticky", left: 0, backgroundColor: "var(--bg-secondary)", zIndex: 2 }}>Team</th>
+              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Team</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500", color: "var(--text-muted)" }}>W-L</th>
               {COLUMNS.map((col) => (
                 <TooltipTh
@@ -275,7 +275,7 @@ export default function RatingsTable() {
                 <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-muted)", fontSize: "0.75rem" }}>
                   {team.rank}
                 </td>
-                <td style={{ padding: "0.6rem 0.75rem", position: "sticky", left: 0, backgroundColor: i % 2 === 0 ? "var(--bg-secondary)" : "var(--bg-card)", zIndex: 2 }}>
+                <td style={{ padding: "0.6rem 0.75rem" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", whiteSpace: "nowrap" }}>
                     <img
                       src={team.team_logo}
@@ -283,7 +283,7 @@ export default function RatingsTable() {
                       style={{ width: "24px", height: "24px", objectFit: "contain" }}
                     />
                     <span style={{ color: "var(--text-primary)", fontWeight: "500", whiteSpace: "nowrap" }}>
-                      {team.team_display_name}
+                      {team.team_location}
                     </span>
                   </div>
                 </td>
