@@ -102,6 +102,10 @@ export default function Home() {
         {activeTab === "def-shooting" && <DefShootingTable />}
         {activeTab === "misc" && <MiscTable />}
       </main>
+
+      <footer style={{ borderTop: "1px solid var(--border)", padding: "1.5rem 2rem", textAlign: "center", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+        Built by cwalkerstats · Data via the <a href="https://github.com/sportsdataverse/wehoop" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", textDecoration: "none" }}>wehoop</a> R package
+      </footer>
     </div>
   );
 }
