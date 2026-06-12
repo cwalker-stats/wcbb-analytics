@@ -275,14 +275,14 @@ export default function RatingsTable() {
                 <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-muted)", fontSize: "0.75rem" }}>
                   {team.rank}
                 </td>
-                <td style={{ padding: "0.6rem 0.75rem", position: "sticky", left: 0, backgroundColor: "var(--bg-secondary)", zIndex: 2 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <td style={{ padding: "0.6rem 0.75rem", position: "sticky", left: 0, backgroundColor: i % 2 === 0 ? "var(--bg-secondary)" : "var(--bg-card)", zIndex: 2 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", whiteSpace: "nowrap" }}>
                     <img
                       src={team.team_logo}
                       alt={team.team_display_name}
                       style={{ width: "24px", height: "24px", objectFit: "contain" }}
                     />
-                    <span style={{ color: "var(--text-primary)", fontWeight: "500" }}>
+                    <span style={{ color: "var(--text-primary)", fontWeight: "500", whiteSpace: "nowrap" }}>
                       {team.team_display_name}
                     </span>
                   </div>
