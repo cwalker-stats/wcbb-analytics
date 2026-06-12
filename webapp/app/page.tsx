@@ -58,7 +58,7 @@ export default function Home() {
             </p>
           </div>
 
-          <nav style={{ display: "flex", gap: "0" }}>
+          <nav style={{ display: "flex", gap: "0", overflowX: "auto" }}>
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -93,7 +93,7 @@ export default function Home() {
         style={{
           maxWidth: "1400px",
           margin: "0 auto",
-          padding: "2rem",
+          padding: "1rem",
         }}
       >
         {activeTab === "ratings" && <RatingsTable />}

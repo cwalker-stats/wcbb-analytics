@@ -250,7 +250,7 @@ export default function RatingsTable() {
               letterSpacing: "0.03em",
             }}>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Rk</th>
-              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Team</th>
+              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)", position: "sticky", left: 0, backgroundColor: "var(--bg-secondary)", zIndex: 2 }}>Team</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500", color: "var(--text-muted)" }}>W-L</th>
               {COLUMNS.map((col) => (
                 <TooltipTh
@@ -275,7 +275,7 @@ export default function RatingsTable() {
                 <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-muted)", fontSize: "0.75rem" }}>
                   {team.rank}
                 </td>
-                <td style={{ padding: "0.6rem 0.75rem" }}>
+                <td style={{ padding: "0.6rem 0.75rem", position: "sticky", left: 0, backgroundColor: "var(--bg-secondary)", zIndex: 2 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                     <img
                       src={team.team_logo}
