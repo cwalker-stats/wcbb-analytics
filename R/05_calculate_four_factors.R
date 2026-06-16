@@ -22,6 +22,7 @@ four_factors <- processed |>
     season, team_id, team_display_name, team_abbreviation,
     team_location, team_name, team_logo, team_color,
     team_alternate_color, wins, losses, games, net,
+    conference, conference_short,
     off_efg, off_to_pct, off_or_pct, off_ftr,
     def_efg, def_to_pct, def_or_pct, def_ftr
   )

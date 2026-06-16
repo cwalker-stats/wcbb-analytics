@@ -27,6 +27,8 @@ type ShootingStats = {
   fg3m_rate: number;
   ftr: number;
   ft_pct_off: number;
+  conference: string;
+  conference_short: string;
 };
 
 type ColumnDef = {
@@ -37,12 +39,7 @@ type ColumnDef = {
 };
 
 const ADJ_COLUMNS: ColumnDef[] = [
-  {
-    key: "net",
-    label: "AdjEM",
-    ascending: false,
-    tooltip: "Adjusted scoring margin per 100 possessions.",
-  },
+  { key: "net", label: "AdjEM", ascending: false, tooltip: "Adjusted scoring margin per 100 possessions." },
 ];
 
 const EFF_COLUMNS: ColumnDef[] = [
@@ -139,6 +136,7 @@ export default function OffShootingTable() {
   const [allData, setAllData] = useState<ShootingStats[]>([]);
   const [seasons, setSeasons] = useState<number[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<number>(2026);
+  const [selectedConference, setSelectedConference] = useState<string>("All");
   const [sortCol, setSortCol] = useState<keyof ShootingStats>("net");
   const [sortAsc, setSortAsc] = useState(false);
   const [search, setSearch] = useState("");
@@ -160,12 +158,21 @@ export default function OffShootingTable() {
       });
   }, []);
 
+  useEffect(() => {
+    setSelectedConference("All");
+  }, [selectedSeason]);
+
   if (loading) return <div style={{ color: "var(--text-secondary)", padding: "2rem" }}>Loading...</div>;
   if (error) return <div style={{ color: "var(--negative)", padding: "2rem" }}>{error}</div>;
 
   const seasonData = filterBySeason(allData, selectedSeason);
+  const seasonConferences = [...new Set(seasonData.map((d) => d.conference_short).filter(Boolean))].sort();
 
-  const allRanked = [...seasonData].sort((a, b) => {
+  const filteredData = seasonData.filter((t) =>
+    selectedConference === "All" || t.conference_short === selectedConference
+  );
+
+  const allRanked = [...filteredData].sort((a, b) => {
     const aVal = a[sortCol] as number;
     const bVal = b[sortCol] as number;
     return sortAsc ? aVal - bVal : bVal - aVal;
@@ -175,7 +182,7 @@ export default function OffShootingTable() {
     t.team_location.toLowerCase().includes(search.toLowerCase())
   );
 
-  const total = seasonData.length;
+  const total = filteredData.length;
 
   const handleSort = (col: keyof ShootingStats, defaultAsc: boolean) => {
     if (sortCol === col) {
@@ -187,12 +194,22 @@ export default function OffShootingTable() {
   };
 
   const getColRank = (team: ShootingStats, col: ColumnDef): number => {
-    const sorted = [...seasonData].sort((a, b) => {
+    const sorted = [...filteredData].sort((a, b) => {
       const aVal = a[col.key] as number;
       const bVal = b[col.key] as number;
       return col.ascending ? aVal - bVal : bVal - aVal;
     });
     return sorted.findIndex((t) => t.team_id === team.team_id) + 1;
+  };
+
+  const selectStyle = {
+    backgroundColor: "var(--bg-card)",
+    color: "var(--text-primary)",
+    border: "1px solid var(--border)",
+    borderRadius: "6px",
+    padding: "0.4rem 0.75rem",
+    fontSize: "0.875rem",
+    cursor: "pointer",
   };
 
   const headerStyle = {
@@ -209,21 +226,16 @@ export default function OffShootingTable() {
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Season</label>
-        <select
-          value={selectedSeason}
-          onChange={(e) => setSelectedSeason(Number(e.target.value))}
-          style={{
-            backgroundColor: "var(--bg-card)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border)",
-            borderRadius: "6px",
-            padding: "0.4rem 0.75rem",
-            fontSize: "0.875rem",
-            cursor: "pointer",
-          }}
-        >
+        <select value={selectedSeason} onChange={(e) => setSelectedSeason(Number(e.target.value))} style={selectStyle}>
           {seasons.map((s) => (
             <option key={s} value={s}>{formatSeason(s)}</option>
+          ))}
+        </select>
+        <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Conference</label>
+        <select value={selectedConference} onChange={(e) => setSelectedConference(e.target.value)} style={selectStyle}>
+          <option key="All" value="All">All</option>
+          {seasonConferences.map((c) => (
+            <option key={c} value={c}>{c}</option>
           ))}
         </select>
         <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{ranked.length} of {total} teams</span>
@@ -232,16 +244,7 @@ export default function OffShootingTable() {
           placeholder="Search team..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{
-            backgroundColor: "var(--bg-card)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border)",
-            borderRadius: "6px",
-            padding: "0.4rem 0.75rem",
-            fontSize: "0.875rem",
-            outline: "none",
-            width: "160px",
-          }}
+          style={{ ...selectStyle, outline: "none", width: "160px" }}
         />
       </div>
 
@@ -249,7 +252,7 @@ export default function OffShootingTable() {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
           <thead>
             <tr>
-              <th colSpan={4} style={{ padding: 0, border: "none", backgroundColor: "transparent" }} />
+              <th colSpan={5} style={{ padding: 0, border: "none", backgroundColor: "transparent" }} />
               <th colSpan={4} style={{ ...headerStyle, backgroundColor: "rgba(74,158,107,0.06)", borderRight: "2px solid var(--border)" }}>
                 OFF. EFFICIENCY
               </th>
@@ -260,6 +263,7 @@ export default function OffShootingTable() {
             <tr style={{ borderBottom: "2px solid var(--border)", fontSize: "0.75rem" }}>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Rk</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)", width: "1%" }}>Team</th>
+              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Conf</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500", color: "var(--text-muted)" }}>W-L</th>
               {ALL_COLUMNS.map((col) => (
                 <TooltipTh key={col.key} col={col} sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
@@ -279,16 +283,15 @@ export default function OffShootingTable() {
                   {team.rank}
                 </td>
                 <td style={{ padding: "0.6rem 0.75rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", whiteSpace: "nowrap" }}>
-                    <img
-                      src={team.team_logo}
-                      alt={team.team_display_name}
-                      style={{ width: "24px", height: "24px", objectFit: "contain" }}
-                    />
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", whiteSpace: "nowrap", minWidth: "200px" }}>
+                    <img src={team.team_logo} alt={team.team_display_name} style={{ width: "24px", height: "24px", objectFit: "contain" }} />
                     <span style={{ color: "var(--text-primary)", fontWeight: "500", whiteSpace: "nowrap" }}>
                       {team.team_location}
                     </span>
                   </div>
+                </td>
+                <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-muted)", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                  {team.conference_short}
                 </td>
                 <td style={{ padding: "0.6rem 0.75rem", textAlign: "center", color: "var(--text-secondary)" }}>
                   {team.wins}-{team.losses}

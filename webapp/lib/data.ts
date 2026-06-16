@@ -18,6 +18,8 @@ export type TeamRating = {
   dsos: number;
   pace: number;
   games: number;
+  conference: string;
+  conference_short: string;
 };
 
 export type TeamSeasonStats = {
@@ -63,6 +65,8 @@ export type TeamSeasonStats = {
   opp_ft_pct: number;
   opp_tot_reb: number;
   opp_turnovers: number;
+  conference: string;
+  conference_short: string;
 };
 
 export async function getTeamRatings(): Promise<TeamRating[]> {
@@ -80,6 +84,11 @@ export async function getTeamStats(): Promise<TeamSeasonStats[]> {
 export function getSeasons(data: { season: number }[]): number[] {
   const seasons = [...new Set(data.map((d) => d.season))];
   return seasons.sort((a, b) => b - a);
+}
+
+export function getConferences(data: { conference_short: string }[]): string[] {
+  const confs = [...new Set(data.map((d) => d.conference_short).filter(Boolean))];
+  return confs.sort();
 }
 
 export function filterBySeason<T extends { season: number }>(

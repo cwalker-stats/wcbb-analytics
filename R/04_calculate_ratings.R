@@ -7,8 +7,14 @@ raw <- readr::read_csv("data/raw/wbb_team_box_raw.csv", show_col_types = FALSE)
 d1_ids <- readr::read_csv("data/raw/d1_team_ids.csv", show_col_types = FALSE)
 game_minutes <- readr::read_csv("data/raw/game_minutes.csv", show_col_types = FALSE)
 
+conf_data <- readr::read_csv("data/raw/conference_data.csv", show_col_types = FALSE)
+
 raw_d1 <- raw |>
-  dplyr::inner_join(d1_ids, by = c("season", "team_id"))
+  dplyr::inner_join(d1_ids, by = c("season", "team_id")) |>
+  dplyr::left_join(
+    conf_data |> dplyr::select(season, team_id, conference, conference_short),
+    by = c("season", "team_id")
+  )
 
 game_stats <- raw_d1 |>
   dplyr::mutate(
@@ -130,7 +136,8 @@ sos_metrics <- game_pairs |>
 team_info <- raw_d1 |>
   dplyr::distinct(
     season, team_id, team_display_name, team_abbreviation,
-    team_location, team_name, team_logo, team_color, team_alternate_color
+    team_location, team_name, team_logo, team_color, team_alternate_color,
+    conference, conference_short
   )
 
 wins_losses <- raw_d1 |>

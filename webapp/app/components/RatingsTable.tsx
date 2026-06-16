@@ -37,62 +37,13 @@ type ColumnDef = {
 };
 
 const COLUMNS: ColumnDef[] = [
-  {
-    key: "net",
-    label: "AdjEM",
-    ascending: false,
-    decimals: 1,
-    showPlus: true,
-    tooltip: "Adjusted scoring margin per 100 possessions.",
-  },
-  {
-    key: "ortg",
-    label: "AdjO",
-    ascending: false,
-    decimals: 1,
-    showPlus: false,
-    tooltip: "Adjusted points scored per 100 possessions.",
-  },
-  {
-    key: "drtg",
-    label: "AdjD",
-    ascending: true,
-    decimals: 1,
-    showPlus: false,
-    tooltip: "Adjusted points allowed per 100 possessions.",
-  },
-  {
-    key: "sos",
-    label: "SOS",
-    ascending: false,
-    decimals: 2,
-    showPlus: true,
-    tooltip: "Schedule strength relative to average.",
-  },
-  {
-    key: "osos",
-    label: "OSOS",
-    ascending: false,
-    decimals: 2,
-    showPlus: true,
-    tooltip: "Opponent defensive strength relative to average.",
-  },
-  {
-    key: "dsos",
-    label: "DSOS",
-    ascending: false,
-    decimals: 2,
-    showPlus: true,
-    tooltip: "Opponent offensive strength relative to average.",
-  },
-  {
-    key: "pace",
-    label: "AdjT",
-    ascending: false,
-    decimals: 1,
-    showPlus: false,
-    tooltip: "Adjusted possessions per 40 minutes.",
-  },
+  { key: "net", label: "AdjEM", ascending: false, decimals: 1, showPlus: true, tooltip: "Adjusted scoring margin per 100 possessions." },
+  { key: "ortg", label: "AdjO", ascending: false, decimals: 1, showPlus: false, tooltip: "Adjusted points scored per 100 possessions." },
+  { key: "drtg", label: "AdjD", ascending: true, decimals: 1, showPlus: false, tooltip: "Adjusted points allowed per 100 possessions." },
+  { key: "sos", label: "SOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Schedule strength relative to average." },
+  { key: "osos", label: "OSOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Opponent defensive strength relative to average." },
+  { key: "dsos", label: "DSOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Opponent offensive strength relative to average." },
+  { key: "pace", label: "AdjT", ascending: false, decimals: 1, showPlus: false, tooltip: "Adjusted possessions per 40 minutes." },
 ];
 
 type TooltipThProps = {
@@ -113,15 +64,13 @@ function TooltipTh({ col, sortCol, sortAsc, onSort }: TooltipThProps) {
     }
   };
 
-  const handleMouseLeave = () => setTooltip(null);
-
   return (
     <>
       <th
         ref={thRef}
         onClick={() => { onSort(col.key, col.ascending); setTooltip(null); }}
         onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onMouseLeave={() => setTooltip(null)}
         style={{
           padding: "0.6rem 0.75rem",
           textAlign: "center",
@@ -170,6 +119,7 @@ export default function RatingsTable() {
   const [allData, setAllData] = useState<TeamRating[]>([]);
   const [seasons, setSeasons] = useState<number[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<number>(2026);
+  const [selectedConference, setSelectedConference] = useState<string>("All");
   const [sortCol, setSortCol] = useState<keyof TeamRating>("net");
   const [sortAsc, setSortAsc] = useState(false);
   const [search, setSearch] = useState("");
@@ -191,15 +141,25 @@ export default function RatingsTable() {
       });
   }, []);
 
+  useEffect(() => {
+    setSelectedConference("All");
+  }, [selectedSeason]);
+
   if (loading) return <div style={{ color: "var(--text-secondary)", padding: "2rem" }}>Loading...</div>;
   if (error) return <div style={{ color: "var(--negative)", padding: "2rem" }}>{error}</div>;
 
   const seasonData = filterBySeason(allData, selectedSeason);
-  const allRanked = rankBy(seasonData, sortCol, sortAsc);
+  const seasonConferences = [...new Set(seasonData.map((d) => d.conference_short).filter(Boolean))].sort();
+
+  const filteredData = seasonData.filter((t) =>
+    selectedConference === "All" || t.conference_short === selectedConference
+  );
+
+  const allRanked = rankBy(filteredData, sortCol, sortAsc);
   const ranked = allRanked.filter((t) =>
     t.team_location.toLowerCase().includes(search.toLowerCase())
   );
-  const total = seasonData.length;
+  const total = filteredData.length;
 
   const handleSort = (col: keyof TeamRating, defaultAsc: boolean) => {
     if (sortCol === col) {
@@ -211,7 +171,7 @@ export default function RatingsTable() {
   };
 
   const getColRank = (team: TeamRating, col: ColumnDef): number => {
-    const sorted = [...seasonData].sort((a, b) => {
+    const sorted = [...filteredData].sort((a, b) => {
       const aVal = a[col.key] as number;
       const bVal = b[col.key] as number;
       return col.ascending ? aVal - bVal : bVal - aVal;
@@ -219,25 +179,30 @@ export default function RatingsTable() {
     return sorted.findIndex((t) => t.team_id === team.team_id) + 1;
   };
 
+  const selectStyle = {
+    backgroundColor: "var(--bg-card)",
+    color: "var(--text-primary)",
+    border: "1px solid var(--border)",
+    borderRadius: "6px",
+    padding: "0.4rem 0.75rem",
+    fontSize: "0.875rem",
+    cursor: "pointer",
+  };
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Season</label>
-        <select
-          value={selectedSeason}
-          onChange={(e) => setSelectedSeason(Number(e.target.value))}
-          style={{
-            backgroundColor: "var(--bg-card)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border)",
-            borderRadius: "6px",
-            padding: "0.4rem 0.75rem",
-            fontSize: "0.875rem",
-            cursor: "pointer",
-          }}
-        >
+        <select value={selectedSeason} onChange={(e) => setSelectedSeason(Number(e.target.value))} style={selectStyle}>
           {seasons.map((s) => (
             <option key={s} value={s}>{formatSeason(s)}</option>
+          ))}
+        </select>
+        <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Conference</label>
+        <select value={selectedConference} onChange={(e) => setSelectedConference(e.target.value)} style={selectStyle}>
+          <option key="All" value="All">All</option>
+          {seasonConferences.map((c) => (
+            <option key={c} value={c}>{c}</option>
           ))}
         </select>
         <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{ranked.length} of {total} teams</span>
@@ -246,38 +211,20 @@ export default function RatingsTable() {
           placeholder="Search team..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{
-            backgroundColor: "var(--bg-card)",
-            color: "var(--text-primary)",
-            border: "1px solid var(--border)",
-            borderRadius: "6px",
-            padding: "0.4rem 0.75rem",
-            fontSize: "0.875rem",
-            outline: "none",
-            width: "160px",
-          }}
+          style={{ ...selectStyle, outline: "none", width: "160px" }}
         />
       </div>
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
           <thead>
-            <tr style={{
-              borderBottom: "2px solid var(--border)",
-              fontSize: "0.75rem",
-              letterSpacing: "0.03em",
-            }}>
+            <tr style={{ borderBottom: "2px solid var(--border)", fontSize: "0.75rem", letterSpacing: "0.03em" }}>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Rk</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)", width: "1%" }}>Team</th>
+              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Conf</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500", color: "var(--text-muted)" }}>W-L</th>
               {COLUMNS.map((col) => (
-                <TooltipTh
-                  key={col.key}
-                  col={col}
-                  sortCol={sortCol}
-                  sortAsc={sortAsc}
-                  onSort={handleSort}
-                />
+                <TooltipTh key={col.key} col={col} sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
               ))}
             </tr>
           </thead>
@@ -294,16 +241,15 @@ export default function RatingsTable() {
                   {team.rank}
                 </td>
                 <td style={{ padding: "0.6rem 0.75rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", whiteSpace: "nowrap" }}>
-                    <img
-                      src={team.team_logo}
-                      alt={team.team_display_name}
-                      style={{ width: "24px", height: "24px", objectFit: "contain" }}
-                    />
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", whiteSpace: "nowrap", minWidth: "200px" }}>
+                    <img src={team.team_logo} alt={team.team_display_name} style={{ width: "24px", height: "24px", objectFit: "contain" }} />
                     <span style={{ color: "var(--text-primary)", fontWeight: "500", whiteSpace: "nowrap" }}>
                       {team.team_location}
                     </span>
                   </div>
+                </td>
+                <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-muted)", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                  {team.conference_short}
                 </td>
                 <td style={{ padding: "0.6rem 0.75rem", textAlign: "center", color: "var(--text-secondary)" }}>
                   {team.wins}-{team.losses}

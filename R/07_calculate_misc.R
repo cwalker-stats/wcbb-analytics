@@ -24,6 +24,7 @@ misc <- processed |>
     season, team_id, team_display_name, team_abbreviation,
     team_location, team_name, team_logo, team_color,
     team_alternate_color, wins, losses, games, net,
+    conference, conference_short,
     off_ast_pct, off_ato, off_ft_pct, off_stl_pct, off_blk_pct,
     def_ast_pct, def_ato, def_ft_pct, def_stl_pct, def_blk_pct
   )

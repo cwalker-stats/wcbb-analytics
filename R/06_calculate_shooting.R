@@ -34,6 +34,7 @@ shooting <- processed |>
     season, team_id, team_display_name, team_abbreviation,
     team_location, team_name, team_logo, team_color,
     team_alternate_color, wins, losses, games, net,
+    conference, conference_short,
     efg_pct, ts_pct, fg2_pct, fg3_pct_off,
     fg3a_rate, fg3m_rate, ftr, ft_pct_off,
     def_efg_pct, def_ts_pct, def_fg2_pct, def_fg3_pct,
