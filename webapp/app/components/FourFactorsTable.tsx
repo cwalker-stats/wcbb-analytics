@@ -47,14 +47,14 @@ const ADJ_COLUMNS: ColumnDef[] = [
 
 const OFF_COLUMNS: ColumnDef[] = [
   { key: "off_efg", label: "eFG%", ascending: false, tooltip: "Shooting efficiency, accounting for three-pointers." },
-  { key: "off_to_pct", label: "TO%", ascending: true, tooltip: "Turnovers committed per possession." },
+  { key: "off_to_pct", label: "TOV%", ascending: true, tooltip: "Turnovers committed per possession." },
   { key: "off_or_pct", label: "ORB%", ascending: false, tooltip: "Percentage of available offensive rebounds secured." },
   { key: "off_ftr", label: "FTr", ascending: false, tooltip: "Free throw attempts per field goal attempt." },
 ];
 
 const DEF_COLUMNS: ColumnDef[] = [
   { key: "def_efg", label: "eFG%", ascending: true, tooltip: "Opponent shooting efficiency, accounting for three-pointers." },
-  { key: "def_to_pct", label: "TO%", ascending: false, tooltip: "Turnovers forced per opponent possession." },
+  { key: "def_to_pct", label: "TOV%", ascending: false, tooltip: "Turnovers forced per opponent possession." },
   { key: "def_or_pct", label: "ORB%", ascending: true, tooltip: "Percentage of available offensive rebounds allowed." },
   { key: "def_ftr", label: "FTr", ascending: true, tooltip: "Opponent free throw attempts per field goal attempt." },
 ];
@@ -142,6 +142,7 @@ export default function FourFactorsTable() {
   const [selectedSeason, setSelectedSeason] = useState<number>(2026);
   const [sortCol, setSortCol] = useState<keyof FourFactors>("net");
   const [sortAsc, setSortAsc] = useState(false);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -165,13 +166,17 @@ export default function FourFactorsTable() {
 
   const seasonData = filterBySeason(allData, selectedSeason);
 
-  const ranked = [...seasonData].sort((a, b) => {
+  const allRanked = [...seasonData].sort((a, b) => {
     const aVal = a[sortCol] as number;
     const bVal = b[sortCol] as number;
     return sortAsc ? aVal - bVal : bVal - aVal;
   }).map((team, index) => ({ ...team, rank: index + 1 }));
 
-  const total = ranked.length;
+  const ranked = allRanked.filter((t) =>
+    t.team_location.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const total = seasonData.length;
 
   const handleSort = (col: keyof FourFactors, defaultAsc: boolean) => {
     if (sortCol === col) {
@@ -203,7 +208,7 @@ export default function FourFactorsTable() {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Season</label>
         <select
           value={selectedSeason}
@@ -222,7 +227,23 @@ export default function FourFactorsTable() {
             <option key={s} value={s}>{formatSeason(s)}</option>
           ))}
         </select>
-        <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{total} teams</span>
+        <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{ranked.length} of {total} teams</span>
+        <input
+          type="text"
+          placeholder="Search team..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            backgroundColor: "var(--bg-card)",
+            color: "var(--text-primary)",
+            border: "1px solid var(--border)",
+            borderRadius: "6px",
+            padding: "0.4rem 0.75rem",
+            fontSize: "0.875rem",
+            outline: "none",
+            width: "160px",
+          }}
+        />
       </div>
 
       <div style={{ overflowX: "auto" }}>
@@ -242,31 +263,13 @@ export default function FourFactorsTable() {
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)", width: "1%" }}>Team</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500", color: "var(--text-muted)" }}>W-L</th>
               {ADJ_COLUMNS.map((col) => (
-                <TooltipTh
-                  key={col.key}
-                  col={col}
-                  sortCol={sortCol}
-                  sortAsc={sortAsc}
-                  onSort={handleSort}
-                />
+                <TooltipTh key={col.key} col={col} sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
               ))}
               {OFF_COLUMNS.map((col) => (
-                <TooltipTh
-                  key={col.key}
-                  col={col}
-                  sortCol={sortCol}
-                  sortAsc={sortAsc}
-                  onSort={handleSort}
-                />
+                <TooltipTh key={col.key} col={col} sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
               ))}
               {DEF_COLUMNS.map((col) => (
-                <TooltipTh
-                  key={col.key}
-                  col={col}
-                  sortCol={sortCol}
-                  sortAsc={sortAsc}
-                  onSort={handleSort}
-                />
+                <TooltipTh key={col.key} col={col} sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
               ))}
             </tr>
           </thead>

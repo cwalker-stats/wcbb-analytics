@@ -109,10 +109,7 @@ function TooltipTh({ col, sortCol, sortAsc, onSort }: TooltipThProps) {
   const handleMouseEnter = () => {
     if (thRef.current) {
       const rect = thRef.current.getBoundingClientRect();
-      setTooltip({
-        x: rect.left + rect.width / 2,
-        y: rect.top - 8,
-      });
+      setTooltip({ x: rect.left + rect.width / 2, y: rect.top - 8 });
     }
   };
 
@@ -175,6 +172,7 @@ export default function RatingsTable() {
   const [selectedSeason, setSelectedSeason] = useState<number>(2026);
   const [sortCol, setSortCol] = useState<keyof TeamRating>("net");
   const [sortAsc, setSortAsc] = useState(false);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -197,8 +195,11 @@ export default function RatingsTable() {
   if (error) return <div style={{ color: "var(--negative)", padding: "2rem" }}>{error}</div>;
 
   const seasonData = filterBySeason(allData, selectedSeason);
-  const ranked = rankBy(seasonData, sortCol, sortAsc);
-  const total = ranked.length;
+  const allRanked = rankBy(seasonData, sortCol, sortAsc);
+  const ranked = allRanked.filter((t) =>
+    t.team_location.toLowerCase().includes(search.toLowerCase())
+  );
+  const total = seasonData.length;
 
   const handleSort = (col: keyof TeamRating, defaultAsc: boolean) => {
     if (sortCol === col) {
@@ -220,7 +221,7 @@ export default function RatingsTable() {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Season</label>
         <select
           value={selectedSeason}
@@ -239,7 +240,23 @@ export default function RatingsTable() {
             <option key={s} value={s}>{formatSeason(s)}</option>
           ))}
         </select>
-        <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{total} teams</span>
+        <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{ranked.length} of {total} teams</span>
+        <input
+          type="text"
+          placeholder="Search team..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            backgroundColor: "var(--bg-card)",
+            color: "var(--text-primary)",
+            border: "1px solid var(--border)",
+            borderRadius: "6px",
+            padding: "0.4rem 0.75rem",
+            fontSize: "0.875rem",
+            outline: "none",
+            width: "160px",
+          }}
+        />
       </div>
 
       <div style={{ overflowX: "auto" }}>
@@ -251,7 +268,7 @@ export default function RatingsTable() {
               letterSpacing: "0.03em",
             }}>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Rk</th>
-              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Team</th>
+              <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)", width: "1%" }}>Team</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500", color: "var(--text-muted)" }}>W-L</th>
               {COLUMNS.map((col) => (
                 <TooltipTh
