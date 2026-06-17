@@ -182,7 +182,7 @@ export default function DefShootingTable() {
     t.team_location.toLowerCase().includes(search.toLowerCase())
   );
 
-  const total = filteredData.length;
+  const total = seasonData.length;
 
   const handleSort = (col: keyof ShootingStats, defaultAsc: boolean) => {
     if (sortCol === col) {
@@ -194,7 +194,7 @@ export default function DefShootingTable() {
   };
 
   const getColRank = (team: ShootingStats, col: ColumnDef): number => {
-    const sorted = [...filteredData].sort((a, b) => {
+    const sorted = [...seasonData].sort((a, b) => {
       const aVal = a[col.key] as number;
       const bVal = b[col.key] as number;
       return col.ascending ? aVal - bVal : bVal - aVal;
@@ -238,7 +238,7 @@ export default function DefShootingTable() {
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
-        <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{ranked.length} of {total} teams</span>
+        <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{ranked.length} of {seasonData.length} teams</span>
         <input
           type="text"
           placeholder="Search team..."
