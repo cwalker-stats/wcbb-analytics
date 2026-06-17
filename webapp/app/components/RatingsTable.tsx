@@ -36,15 +36,24 @@ type ColumnDef = {
   tooltip: string;
 };
 
-const COLUMNS: ColumnDef[] = [
+const ADJ_COLUMNS: ColumnDef[] = [
   { key: "net", label: "AdjEM", ascending: false, decimals: 1, showPlus: true, tooltip: "Adjusted scoring margin per 100 possessions." },
+];
+
+const QUALITY_COLUMNS: ColumnDef[] = [
   { key: "ortg", label: "AdjO", ascending: false, decimals: 1, showPlus: false, tooltip: "Adjusted points scored per 100 possessions." },
   { key: "drtg", label: "AdjD", ascending: true, decimals: 1, showPlus: false, tooltip: "Adjusted points allowed per 100 possessions." },
+  { key: "pace", label: "AdjT", ascending: false, decimals: 1, showPlus: false, tooltip: "Adjusted possessions per 40 minutes." },
+];
+
+const CONTEXT_COLUMNS: ColumnDef[] = [
+  { key: "luck", label: "Luck", ascending: false, decimals: 3, showPlus: true, tooltip: "Wins above expectation based on scoring efficiency." },
   { key: "sos", label: "SOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Schedule strength relative to average." },
   { key: "osos", label: "OSOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Opponent defensive strength relative to average." },
   { key: "dsos", label: "DSOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Opponent offensive strength relative to average." },
-  { key: "pace", label: "AdjT", ascending: false, decimals: 1, showPlus: false, tooltip: "Adjusted possessions per 40 minutes." },
 ];
+
+const ALL_COLUMNS = [...ADJ_COLUMNS, ...QUALITY_COLUMNS, ...CONTEXT_COLUMNS];
 
 type TooltipThProps = {
   col: ColumnDef;
@@ -189,6 +198,16 @@ export default function RatingsTable() {
     cursor: "pointer",
   };
 
+  const headerStyle = {
+    padding: "0.4rem 0.75rem",
+    textAlign: "center" as const,
+    fontSize: "0.7rem",
+    fontWeight: "600",
+    letterSpacing: "0.06em",
+    color: "var(--text-muted)",
+    borderBottom: "1px solid var(--border)",
+  };
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
@@ -220,12 +239,27 @@ export default function RatingsTable() {
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
           <thead>
+            <tr>
+              <th colSpan={5} style={{ padding: 0, border: "none", backgroundColor: "transparent" }} />
+              <th colSpan={3} style={{ ...headerStyle, backgroundColor: "rgba(74,158,107,0.06)", borderRight: "2px solid var(--border)" }}>
+                TEAM QUALITY
+              </th>
+              <th colSpan={4} style={{ ...headerStyle, backgroundColor: "rgba(100,120,180,0.06)" }}>
+                CONTEXT & SCHEDULE
+              </th>
+            </tr>
             <tr style={{ borderBottom: "2px solid var(--border)", fontSize: "0.75rem", letterSpacing: "0.03em" }}>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Rk</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)", width: "1%" }}>Team</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "left", fontWeight: "500", color: "var(--text-muted)" }}>Conf</th>
               <th style={{ padding: "0.6rem 0.75rem", textAlign: "center", fontWeight: "500", color: "var(--text-muted)" }}>W-L</th>
-              {COLUMNS.map((col) => (
+              {ADJ_COLUMNS.map((col) => (
+                <TooltipTh key={col.key} col={col} sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
+              ))}
+              {QUALITY_COLUMNS.map((col) => (
+                <TooltipTh key={col.key} col={col} sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
+              ))}
+              {CONTEXT_COLUMNS.map((col) => (
                 <TooltipTh key={col.key} col={col} sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
               ))}
             </tr>
@@ -256,10 +290,12 @@ export default function RatingsTable() {
                 <td style={{ padding: "0.6rem 0.75rem", textAlign: "center", color: "var(--text-secondary)" }}>
                   {team.wins}-{team.losses}
                 </td>
-                {COLUMNS.map((col) => {
+                {ALL_COLUMNS.map((col, i) => {
                   const val = team[col.key] as number;
                   const colRank = getColRank(team, col);
                   const bg = getRankColor(colRank, total);
+                  const isLastAdj = i === ADJ_COLUMNS.length - 1;
+                  const isLastQuality = i === ADJ_COLUMNS.length + QUALITY_COLUMNS.length - 1;
                   const formatted = col.showPlus && val > 0
                     ? `+${val.toFixed(col.decimals)}`
                     : val.toFixed(col.decimals);
@@ -272,6 +308,7 @@ export default function RatingsTable() {
                         backgroundColor: bg,
                         color: "var(--text-primary)",
                         fontWeight: sortCol === col.key ? "600" : "400",
+                        borderRight: isLastAdj || isLastQuality ? "2px solid var(--border)" : undefined,
                       }}
                     >
                       <div style={{ fontSize: "0.875rem" }}>{formatted}</div>

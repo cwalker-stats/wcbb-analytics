@@ -20,6 +20,7 @@ export type TeamRating = {
   games: number;
   conference: string;
   conference_short: string;
+  luck: number;
 };
 
 export type TeamSeasonStats = {
