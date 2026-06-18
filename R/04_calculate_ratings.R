@@ -48,7 +48,7 @@ game_pairs <- game_stats |>
 
 message("Game-level stats calculated. Games: ", nrow(game_pairs))
 
-iterate_ratings <- function(season_games, n_iter = 30) {
+iterate_ratings <- function(season_games, n_iter = 50, tol = 0.01) {
   d1_avg_ortg <- 100 * sum(season_games$team_score, na.rm = TRUE) / sum(season_games$game_poss, na.rm = TRUE)
   d1_avg_drtg <- 100 * sum(season_games$opponent_team_score, na.rm = TRUE) / sum(season_games$game_poss, na.rm = TRUE)
   d1_avg_pace <- mean(season_games$raw_pace, na.rm = TRUE)
@@ -56,9 +56,9 @@ iterate_ratings <- function(season_games, n_iter = 30) {
   ratings <- season_games |>
     dplyr::group_by(team_id) |>
     dplyr::summarise(
-      adj_ortg = mean(raw_ortg, na.rm = TRUE),
-      adj_drtg = mean(raw_drtg, na.rm = TRUE),
-      adj_pace = mean(raw_pace, na.rm = TRUE),
+      adj_ortg = weighted.mean(raw_ortg, w = game_poss, na.rm = TRUE),
+      adj_drtg = weighted.mean(raw_drtg, w = game_poss, na.rm = TRUE),
+      adj_pace = weighted.mean(raw_pace, w = game_poss, na.rm = TRUE),
       .groups  = "drop"
     )
   
@@ -75,13 +75,18 @@ iterate_ratings <- function(season_games, n_iter = 30) {
       dplyr::left_join(opp_ratings, by = "opponent_team_id") |>
       dplyr::group_by(team_id) |>
       dplyr::summarise(
-        adj_ortg = mean(raw_ortg * (d1_avg_drtg / opp_adj_drtg), na.rm = TRUE),
-        adj_drtg = mean(raw_drtg * (d1_avg_ortg / opp_adj_ortg), na.rm = TRUE),
-        adj_pace = mean(raw_pace * (d1_avg_pace / opp_adj_pace), na.rm = TRUE),
+        adj_ortg = weighted.mean(raw_ortg * (d1_avg_drtg / opp_adj_drtg), w = game_poss, na.rm = TRUE),
+        adj_drtg = weighted.mean(raw_drtg * (d1_avg_ortg / opp_adj_ortg), w = game_poss, na.rm = TRUE),
+        adj_pace = weighted.mean(raw_pace * (d1_avg_pace / opp_adj_pace), w = game_poss, na.rm = TRUE),
         .groups  = "drop"
       )
     
+    max_change <- max(abs(new_ratings$adj_ortg - ratings$adj_ortg), na.rm = TRUE)
     ratings <- new_ratings
+    if (max_change < tol) {
+      message("    Converged at iteration ", i)
+      break
+    }
   }
   
   ratings
@@ -111,8 +116,8 @@ league_avgs <- game_pairs |>
 raw_team_avg <- game_pairs |>
   dplyr::group_by(season, team_id) |>
   dplyr::summarise(
-    raw_ortg = mean(raw_ortg, na.rm = TRUE),
-    raw_drtg = mean(raw_drtg, na.rm = TRUE),
+    raw_ortg = weighted.mean(raw_ortg, w = game_poss, na.rm = TRUE),
+    raw_drtg = weighted.mean(raw_drtg, w = game_poss, na.rm = TRUE),
     .groups  = "drop"
   )
 
@@ -130,9 +135,9 @@ sos_metrics <- game_pairs |>
   dplyr::left_join(league_avgs, by = "season") |>
   dplyr::group_by(season, team_id) |>
   dplyr::summarise(
-    sos  = mean((opp_raw_ortg - opp_raw_drtg) - (league_avg_ortg - league_avg_drtg), na.rm = TRUE),
-    osos = mean(opp_raw_drtg - league_avg_drtg, na.rm = TRUE),
-    dsos = mean(opp_raw_ortg - league_avg_ortg, na.rm = TRUE),
+    sos  = weighted.mean((opp_raw_ortg - opp_raw_drtg) - (league_avg_ortg - league_avg_drtg), w = game_poss, na.rm = TRUE),
+    osos = weighted.mean(opp_raw_drtg - league_avg_drtg, w = game_poss, na.rm = TRUE),
+    dsos = weighted.mean(opp_raw_ortg - league_avg_ortg, w = game_poss, na.rm = TRUE),
     .groups = "drop"
   )
 
