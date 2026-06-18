@@ -102,8 +102,8 @@ message("Calculating SOS metrics...")
 league_avgs <- game_pairs |>
   dplyr::group_by(season) |>
   dplyr::summarise(
-    league_avg_ortg = mean(raw_ortg, na.rm = TRUE),
-    league_avg_drtg = mean(raw_drtg, na.rm = TRUE),
+    league_avg_ortg = 100 * sum(team_score, na.rm = TRUE) / sum(game_poss, na.rm = TRUE),
+    league_avg_drtg = 100 * sum(opponent_team_score, na.rm = TRUE) / sum(game_poss, na.rm = TRUE),
     league_avg_pace = mean(raw_pace, na.rm = TRUE),
     .groups = "drop"
   )
