@@ -7,16 +7,25 @@ import OffShootingTable from "./components/OffShootingTable";
 import DefShootingTable from "./components/DefShootingTable";
 import MiscTable from "./components/MiscTable";
 
-const TABS = [
-  { id: "ratings", label: "Ratings" },
-  { id: "four-factors", label: "Four Factors" },
-  { id: "off-shooting", label: "Off. Shooting" },
-  { id: "def-shooting", label: "Def. Shooting" },
-  { id: "misc", label: "Misc" },
+const TOP_NAV = [
+  { id: "team-stats", label: "Team Stats" },
 ];
 
+const SUB_NAV: Record<string, { id: string; label: string }[]> = {
+  "team-stats": [
+    { id: "ratings", label: "Ratings" },
+    { id: "four-factors", label: "Four Factors" },
+    { id: "off-shooting", label: "Off. Shooting" },
+    { id: "def-shooting", label: "Def. Shooting" },
+    { id: "misc", label: "Misc" },
+  ],
+};
+
 export default function Home() {
+  const [activeTop, setActiveTop] = useState("team-stats");
   const [activeTab, setActiveTab] = useState("ratings");
+
+  const subTabs = SUB_NAV[activeTop] ?? [];
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--bg-primary)" }}>
@@ -59,33 +68,60 @@ export default function Home() {
           </div>
 
           <nav style={{ display: "flex", gap: "0", overflowX: "auto" }}>
-            {TABS.map((tab) => (
+            {TOP_NAV.map((item) => (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                key={item.id}
+                onClick={() => {
+                  setActiveTop(item.id);
+                  setActiveTab(SUB_NAV[item.id]?.[0]?.id ?? "");
+                }}
                 style={{
                   padding: "0.75rem 1.25rem",
                   fontSize: "0.875rem",
-                  fontWeight: activeTab === tab.id ? "600" : "400",
-                  color:
-                    activeTab === tab.id
-                      ? "var(--text-primary)"
-                      : "var(--text-secondary)",
+                  fontWeight: activeTop === item.id ? "600" : "400",
+                  color: activeTop === item.id ? "var(--text-primary)" : "var(--text-secondary)",
                   backgroundColor: "transparent",
                   border: "none",
-                  borderBottom:
-                    activeTab === tab.id
-                      ? "2px solid var(--accent-bright)"
-                      : "2px solid transparent",
+                  borderBottom: activeTop === item.id ? "2px solid var(--accent-bright)" : "2px solid transparent",
                   cursor: "pointer",
                   transition: "all 0.15s ease",
                   whiteSpace: "nowrap",
                 }}
               >
-                {tab.label}
+                {item.label}
               </button>
             ))}
           </nav>
+
+          {subTabs.length > 0 && (
+            <nav style={{
+              display: "flex",
+              gap: "0",
+              overflowX: "auto",
+              borderTop: "1px solid var(--border)",
+            }}>
+              {subTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    padding: "0.6rem 1.1rem",
+                    fontSize: "0.8rem",
+                    fontWeight: activeTab === tab.id ? "600" : "400",
+                    color: activeTab === tab.id ? "var(--accent-bright)" : "var(--text-muted)",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    borderBottom: activeTab === tab.id ? "2px solid var(--accent-bright)" : "2px solid transparent",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          )}
         </div>
       </header>
 
