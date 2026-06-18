@@ -225,28 +225,32 @@ export default function FourFactorsTable() {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap", rowGap: "0.6rem" }}>
-        <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Season</label>
-        <select value={selectedSeason} onChange={(e) => setSelectedSeason(Number(e.target.value))} style={selectStyle}>
-          {seasons.map((s) => (
-            <option key={s} value={s}>{formatSeason(s)}</option>
-          ))}
-        </select>
-        <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Conference</label>
-        <select value={selectedConference} onChange={(e) => setSelectedConference(e.target.value)} style={selectStyle}>
-          <option key="All" value="All">All</option>
-          {seasonConferences.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{ranked.length} of {seasonData.length} teams</span>
-        <input
-          type="text"
-          placeholder="Search team..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ ...selectStyle, outline: "none", width: "auto" }}
-        />
+      <div style={{ overflowX: "auto", marginBottom: "1.5rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: "max-content" }}>
+          <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Season</label>
+          <select value={selectedSeason} onChange={(e) => setSelectedSeason(Number(e.target.value))} style={selectStyle}>
+            {seasons.map((s) => (
+              <option key={s} value={s}>{formatSeason(s)}</option>
+            ))}
+          </select>
+          <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Conference</label>
+          <select value={selectedConference} onChange={(e) => setSelectedConference(e.target.value)} style={selectStyle}>
+            <option key="All" value="All">All</option>
+            {seasonConferences.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <span style={{ color: "var(--text-muted)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+            {ranked.length} of {seasonData.length} teams
+          </span>
+          <input
+            type="text"
+            placeholder="Search team..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ ...selectStyle, outline: "none", width: "160px" }}
+          />
+        </div>
       </div>
 
       <div style={{ overflowX: "auto" }}>
