@@ -4,7 +4,9 @@ library(jsonlite)
 
 raw <- readr::read_csv("data/raw/wbb_team_box_raw.csv", show_col_types = FALSE)
 d1_ids <- readr::read_csv("data/raw/d1_team_ids.csv", show_col_types = FALSE)
-ratings <- readr::read_csv("data/processed/team_ratings.csv", show_col_types = FALSE)
+ratings <- readr::read_csv("data/processed/team_ratings.csv", show_col_types = FALSE) |>
+  dplyr::as_tibble() |>
+  dplyr::select(-dplyr::any_of("luck"))
 
 raw_d1 <- raw |>
   dplyr::inner_join(d1_ids, by = c("season", "team_id"))
@@ -19,16 +21,16 @@ game_level <- raw_d1 |>
 game_level <- game_level |>
   dplyr::mutate(
     pyth_win_prob = team_score^10.25 / (team_score^10.25 + opp_points^10.25),
-    actual_win = as.numeric(team_winner)
+    actual_win    = as.numeric(team_winner)
   )
 
 luck <- game_level |>
   dplyr::group_by(season, team_id) |>
   dplyr::summarise(
-    actual_wins = sum(actual_win, na.rm = TRUE),
+    actual_wins   = sum(actual_win, na.rm = TRUE),
     expected_wins = sum(pyth_win_prob, na.rm = TRUE),
-    games = n(),
-    luck = (actual_wins - expected_wins) / games,
+    games         = n(),
+    luck          = (actual_wins - expected_wins) / games,
     .groups = "drop"
   )
 
