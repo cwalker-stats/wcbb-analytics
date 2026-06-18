@@ -6,7 +6,6 @@ library(purrr)
 raw <- readr::read_csv("data/raw/wbb_team_box_raw.csv", show_col_types = FALSE)
 d1_ids <- readr::read_csv("data/raw/d1_team_ids.csv", show_col_types = FALSE)
 game_minutes <- readr::read_csv("data/raw/game_minutes.csv", show_col_types = FALSE)
-
 conf_data <- readr::read_csv("data/raw/conference_data.csv", show_col_types = FALSE)
 
 raw_d1 <- raw |>
@@ -31,6 +30,10 @@ game_pairs <- game_stats |>
       dplyr::select(game_id, opponent_team_id = team_id, opp_poss = poss),
     by = c("game_id", "opponent_team_id")
   ) |>
+  dplyr::inner_join(
+    d1_ids |> dplyr::select(season, opponent_team_id = team_id),
+    by = c("season", "opponent_team_id")
+  ) |>
   dplyr::left_join(
     game_minutes |> dplyr::select(game_id, game_minutes),
     by = "game_id"
@@ -46,8 +49,8 @@ game_pairs <- game_stats |>
 message("Game-level stats calculated. Games: ", nrow(game_pairs))
 
 iterate_ratings <- function(season_games, n_iter = 30) {
-  d1_avg_ortg <- mean(season_games$raw_ortg, na.rm = TRUE)
-  d1_avg_drtg <- mean(season_games$raw_drtg, na.rm = TRUE)
+  d1_avg_ortg <- 100 * sum(season_games$team_score, na.rm = TRUE) / sum(season_games$game_poss, na.rm = TRUE)
+  d1_avg_drtg <- 100 * sum(season_games$opponent_team_score, na.rm = TRUE) / sum(season_games$game_poss, na.rm = TRUE)
   d1_avg_pace <- mean(season_games$raw_pace, na.rm = TRUE)
   
   ratings <- season_games |>
