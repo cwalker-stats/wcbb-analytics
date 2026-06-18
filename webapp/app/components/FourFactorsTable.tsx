@@ -225,7 +225,7 @@ export default function FourFactorsTable() {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap", rowGap: "0.6rem" }}>
         <label style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>Season</label>
         <select value={selectedSeason} onChange={(e) => setSelectedSeason(Number(e.target.value))} style={selectStyle}>
           {seasons.map((s) => (
@@ -245,7 +245,7 @@ export default function FourFactorsTable() {
           placeholder="Search team..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ ...selectStyle, outline: "none", width: "160px" }}
+          style={{ ...selectStyle, outline: "none", width: "auto" }}
         />
       </div>
 
