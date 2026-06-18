@@ -145,8 +145,8 @@ sos_metrics <- game_pairs |>
   dplyr::group_by(season, team_id) |>
   dplyr::summarise(
     sos  = weighted.mean((opp_raw_ortg - opp_raw_drtg) - (league_avg_ortg - league_avg_drtg), w = game_poss, na.rm = TRUE),
-    osos = weighted.mean(opp_raw_drtg - league_avg_drtg, w = game_poss, na.rm = TRUE),
-    dsos = weighted.mean(opp_raw_ortg - league_avg_ortg, w = game_poss, na.rm = TRUE),
+    osos = weighted.mean(opp_raw_ortg - league_avg_ortg, w = game_poss, na.rm = TRUE),
+    dsos = weighted.mean(opp_raw_drtg - league_avg_drtg, w = game_poss, na.rm = TRUE),
     .groups = "drop"
   )
 
