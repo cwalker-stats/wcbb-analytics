@@ -81,6 +81,15 @@ iterate_ratings <- function(season_games, n_iter = 50, tol = 0.01) {
         .groups  = "drop"
       )
     
+    mean_o <- mean(new_ratings$adj_ortg, na.rm = TRUE)
+    mean_d <- mean(new_ratings$adj_drtg, na.rm = TRUE)
+    
+    new_ratings <- new_ratings |>
+      dplyr::mutate(
+        adj_ortg = adj_ortg * (d1_avg_ortg / mean_o),
+        adj_drtg = adj_drtg * (d1_avg_drtg / mean_d)
+      )
+    
     max_change <- max(abs(new_ratings$adj_ortg - ratings$adj_ortg), na.rm = TRUE)
     ratings <- new_ratings
     if (max_change < tol) {
