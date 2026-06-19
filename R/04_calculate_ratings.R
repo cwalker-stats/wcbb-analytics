@@ -48,10 +48,13 @@ game_pairs <- game_stats |>
 
 message("Game-level stats calculated. Games: ", nrow(game_pairs))
 
-iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7) {
+iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7, k_shrink = 100) {
   
   league_ortg <- weighted.mean(season_games$raw_ortg, w = season_games$game_poss, na.rm = TRUE)
   league_drtg <- weighted.mean(season_games$raw_drtg, w = season_games$game_poss, na.rm = TRUE)
+  
+  opp_map <- season_games |>
+    dplyr::select(team_id, opponent_team_id, game_poss, raw_ortg, raw_drtg)
   
   ratings <- season_games |>
     dplyr::group_by(team_id) |>
@@ -61,6 +64,8 @@ iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping 
       .groups  = "drop"
     )
   
+  stable_count <- 0
+  
   for (i in seq_len(n_iter)) {
     opp_ratings <- ratings |>
       dplyr::select(
@@ -69,7 +74,7 @@ iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping 
         opp_adj_drtg     = adj_drtg
       )
     
-    game_adj <- season_games |>
+    game_adj <- opp_map |>
       dplyr::left_join(opp_ratings, by = "opponent_team_id") |>
       dplyr::mutate(
         game_adj_ortg = raw_ortg - (opp_adj_drtg - league_drtg),
@@ -79,10 +84,16 @@ iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping 
     proposed_ratings <- game_adj |>
       dplyr::group_by(team_id) |>
       dplyr::summarise(
-        adj_ortg = weighted.mean(game_adj_ortg, w = game_poss, na.rm = TRUE),
-        adj_drtg = weighted.mean(game_adj_drtg, w = game_poss, na.rm = TRUE),
-        .groups  = "drop"
-      )
+        sum_poss      = sum(game_poss, na.rm = TRUE),
+        sum_ortg_poss = sum(game_adj_ortg * game_poss, na.rm = TRUE),
+        sum_drtg_poss = sum(game_adj_drtg * game_poss, na.rm = TRUE),
+        .groups = "drop"
+      ) |>
+      dplyr::mutate(
+        adj_ortg = (sum_ortg_poss + k_shrink * league_ortg) / (sum_poss + k_shrink),
+        adj_drtg = (sum_drtg_poss + k_shrink * league_drtg) / (sum_poss + k_shrink)
+      ) |>
+      dplyr::select(team_id, adj_ortg, adj_drtg)
     
     new_ratings <- ratings |>
       dplyr::inner_join(proposed_ratings, by = "team_id", suffix = c("_old", "_new")) |>
@@ -92,17 +103,31 @@ iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping 
       ) |>
       dplyr::select(team_id, adj_ortg, adj_drtg)
     
+    mean_o <- mean(new_ratings$adj_ortg, na.rm = TRUE)
+    mean_d <- mean(new_ratings$adj_drtg, na.rm = TRUE)
+    
+    new_ratings <- new_ratings |>
+      dplyr::mutate(
+        adj_ortg = adj_ortg - mean_o + league_ortg,
+        adj_drtg = adj_drtg - mean_d + league_drtg
+      )
+    
     deltas <- c(
       abs(new_ratings$adj_ortg - ratings$adj_ortg),
       abs(new_ratings$adj_drtg - ratings$adj_drtg)
     )
-    max_change    <- max(deltas, na.rm = TRUE)
     median_change <- median(deltas, na.rm = TRUE)
     
     ratings <- new_ratings
     
     if (median_change < tol) {
-      message("    Converged at iteration ", i, " (median_change = ", round(median_change, 5), ")")
+      stable_count <- stable_count + 1
+    } else {
+      stable_count <- 0
+    }
+    
+    if (stable_count >= 2) {
+      message("    Converged at iteration ", i, " (2 consecutive stable iterations)")
       break
     }
   }
@@ -110,9 +135,12 @@ iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping 
   ratings
 }
 
-iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7) {
+iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7, k_shrink = 100) {
   
   league_pace <- weighted.mean(season_games$raw_pace, w = season_games$game_poss, na.rm = TRUE)
+  
+  opp_map <- season_games |>
+    dplyr::select(team_id, opponent_team_id, game_poss, raw_pace)
   
   ratings <- season_games |>
     dplyr::group_by(team_id) |>
@@ -121,11 +149,13 @@ iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7)
       .groups  = "drop"
     )
   
+  stable_count <- 0
+  
   for (i in seq_len(n_iter)) {
     opp_ratings <- ratings |>
       dplyr::select(opponent_team_id = team_id, opp_adj_pace = adj_pace)
     
-    game_adj <- season_games |>
+    game_adj <- opp_map |>
       dplyr::left_join(opp_ratings, by = "opponent_team_id") |>
       dplyr::mutate(
         game_adj_pace = raw_pace - (opp_adj_pace - league_pace)
@@ -134,9 +164,14 @@ iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7)
     proposed_ratings <- game_adj |>
       dplyr::group_by(team_id) |>
       dplyr::summarise(
-        adj_pace = weighted.mean(game_adj_pace, w = game_poss, na.rm = TRUE),
-        .groups  = "drop"
-      )
+        sum_poss      = sum(game_poss, na.rm = TRUE),
+        sum_pace_poss = sum(game_adj_pace * game_poss, na.rm = TRUE),
+        .groups = "drop"
+      ) |>
+      dplyr::mutate(
+        adj_pace = (sum_pace_poss + k_shrink * league_pace) / (sum_poss + k_shrink)
+      ) |>
+      dplyr::select(team_id, adj_pace)
     
     new_ratings <- ratings |>
       dplyr::inner_join(proposed_ratings, by = "team_id", suffix = c("_old", "_new")) |>
@@ -145,12 +180,23 @@ iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7)
       ) |>
       dplyr::select(team_id, adj_pace)
     
+    mean_p <- mean(new_ratings$adj_pace, na.rm = TRUE)
+    
+    new_ratings <- new_ratings |>
+      dplyr::mutate(adj_pace = adj_pace - mean_p + league_pace)
+    
     deltas <- abs(new_ratings$adj_pace - ratings$adj_pace)
     median_change <- median(deltas, na.rm = TRUE)
     
     ratings <- new_ratings
     
     if (median_change < tol) {
+      stable_count <- stable_count + 1
+    } else {
+      stable_count <- 0
+    }
+    
+    if (stable_count >= 2) {
       message("    Pace converged at iteration ", i)
       break
     }
@@ -159,7 +205,7 @@ iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7)
   ratings
 }
 
-message("Running additive opponent-adjusted iteration (KenPom-style)...")
+message("Running additive opponent-adjusted iteration with shrinkage (KenPom-style)...")
 
 seasons <- sort(unique(game_pairs$season))
 
