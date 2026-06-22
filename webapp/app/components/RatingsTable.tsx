@@ -48,9 +48,9 @@ const QUALITY_COLUMNS: ColumnDef[] = [
 
 const CONTEXT_COLUMNS: ColumnDef[] = [
   { key: "luck", label: "Luck", ascending: false, decimals: 3, showPlus: true, tooltip: "Wins above expectation based on scoring efficiency." },
-  { key: "sos", label: "SOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Strength of schedule relative to average (pts/100)." },
-  { key: "osos", label: "OSOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Opponent defensive strength relative to average (pts/100)." },
-  { key: "dsos", label: "DSOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Opponent offensive strength relative to average (pts/100)." },
+  { key: "sos", label: "SOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Schedule difficulty relative to average opponent quality." },
+  { key: "osos", label: "OSOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Opponent defensive strength relative to average." },
+  { key: "dsos", label: "DSOS", ascending: false, decimals: 2, showPlus: true, tooltip: "Opponent offensive strength relative to average." },
 ];
 
 const ALL_COLUMNS = [...ADJ_COLUMNS, ...QUALITY_COLUMNS, ...CONTEXT_COLUMNS];
