@@ -3,10 +3,11 @@ library(readr)
 library(jsonlite)
 library(purrr)
 
-raw <- readr::read_csv("data/raw/wbb_team_box_raw.csv", show_col_types = FALSE)
-d1_ids <- readr::read_csv("data/raw/d1_team_ids.csv", show_col_types = FALSE)
-game_minutes <- readr::read_csv("data/raw/game_minutes.csv", show_col_types = FALSE)
-conf_data <- readr::read_csv("data/raw/conference_data.csv", show_col_types = FALSE)
+raw        <- readr::read_csv("data/raw/wbb_team_box_raw.csv",  show_col_types = FALSE)
+d1_ids     <- readr::read_csv("data/raw/d1_team_ids.csv",       show_col_types = FALSE)
+game_minutes <- readr::read_csv("data/raw/game_minutes.csv",    show_col_types = FALSE)
+conf_data  <- readr::read_csv("data/raw/conference_data.csv",   show_col_types = FALSE)
+schedule   <- readr::read_csv("data/raw/game_schedule.csv",     show_col_types = FALSE)
 
 raw_d1 <- raw |>
   dplyr::inner_join(d1_ids, by = c("season", "team_id")) |>
@@ -21,7 +22,7 @@ game_stats <- raw_d1 |>
   ) |>
   dplyr::select(
     season, game_id, game_date, team_id, opponent_team_id,
-    team_score, opponent_team_score, poss
+    team_score, opponent_team_score, team_home_away, poss
   )
 
 game_pairs <- game_stats |>
@@ -38,39 +39,55 @@ game_pairs <- game_stats |>
     game_minutes |> dplyr::select(game_id, game_minutes),
     by = "game_id"
   ) |>
+  dplyr::left_join(
+    schedule |> dplyr::select(game_id, neutral_site),
+    by = "game_id"
+  ) |>
   dplyr::filter(!is.na(game_minutes)) |>
   dplyr::mutate(
     game_poss = (poss + opp_poss) / 2,
     raw_ortg  = 100 * team_score / game_poss,
     raw_drtg  = 100 * opponent_team_score / game_poss,
-    raw_pace  = game_poss / game_minutes * 40
+    raw_pace  = game_poss / game_minutes * 40,
+    eff_poss  = game_poss
   )
 
 message("Game-level stats calculated. Games: ", nrow(game_pairs))
 
-game_pairs <- game_pairs |> dplyr::mutate(eff_poss = game_poss)
+game_pairs |>
+  dplyr::count(neutral_site, team_home_away) |>
+  print()
 
-iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7, k_shrink = 100) {
+iterate_efficiency <- function(season_games, hca = 3.5, n_iter = 100, tol = 0.005, damping = 0.7, k_shrink = 100) {
   
   scale_factor <- 100 / weighted.mean(season_games$raw_ortg, w = season_games$game_poss, na.rm = TRUE)
+  hca_scaled   <- hca * scale_factor
   
   season_games <- season_games |>
     dplyr::mutate(
       raw_ortg = raw_ortg * scale_factor,
-      raw_drtg = raw_drtg * scale_factor
+      raw_drtg = raw_drtg * scale_factor,
+      site_adj = dplyr::case_when(
+        neutral_site == TRUE              ~ 0,
+        team_home_away == "home"          ~ hca_scaled / 2,
+        team_home_away == "away"          ~ -hca_scaled / 2,
+        TRUE                              ~ 0
+      ),
+      raw_ortg_site = raw_ortg - site_adj,
+      raw_drtg_site = raw_drtg + site_adj
     )
   
-  league_ortg <- weighted.mean(season_games$raw_ortg, w = season_games$eff_poss, na.rm = TRUE)
-  league_drtg <- weighted.mean(season_games$raw_drtg, w = season_games$eff_poss, na.rm = TRUE)
+  league_ortg <- weighted.mean(season_games$raw_ortg_site, w = season_games$eff_poss, na.rm = TRUE)
+  league_drtg <- weighted.mean(season_games$raw_drtg_site, w = season_games$eff_poss, na.rm = TRUE)
   
   opp_map <- season_games |>
-    dplyr::select(team_id, opponent_team_id, game_poss, eff_poss, raw_ortg, raw_drtg)
+    dplyr::select(team_id, opponent_team_id, game_poss, eff_poss, raw_ortg_site, raw_drtg_site)
   
   ratings <- season_games |>
     dplyr::group_by(team_id) |>
     dplyr::summarise(
-      adj_ortg = weighted.mean(raw_ortg, w = eff_poss, na.rm = TRUE),
-      adj_drtg = weighted.mean(raw_drtg, w = eff_poss, na.rm = TRUE),
+      adj_ortg = weighted.mean(raw_ortg_site, w = eff_poss, na.rm = TRUE),
+      adj_drtg = weighted.mean(raw_drtg_site, w = eff_poss, na.rm = TRUE),
       .groups  = "drop"
     )
   
@@ -87,8 +104,8 @@ iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping 
     game_adj <- opp_map |>
       dplyr::left_join(opp_ratings, by = "opponent_team_id") |>
       dplyr::mutate(
-        game_adj_ortg = raw_ortg - (opp_adj_drtg - league_drtg),
-        game_adj_drtg = raw_drtg - (opp_adj_ortg - league_ortg)
+        game_adj_ortg = raw_ortg_site - (opp_adj_drtg - league_drtg),
+        game_adj_drtg = raw_drtg_site - (opp_adj_ortg - league_ortg)
       )
     
     proposed_ratings <- game_adj |>
@@ -112,12 +129,11 @@ iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping 
       ) |>
       dplyr::select(team_id, adj_ortg, adj_drtg, sum_eff_poss)
     
-    mean_o <- weighted.mean(new_ratings$adj_ortg, w = new_ratings$sum_eff_poss, na.rm = TRUE)
-    mean_d <- weighted.mean(new_ratings$adj_drtg, w = new_ratings$sum_eff_poss, na.rm = TRUE)
-    
+    mean_o        <- weighted.mean(new_ratings$adj_ortg, w = new_ratings$sum_eff_poss, na.rm = TRUE)
+    mean_d        <- weighted.mean(new_ratings$adj_drtg, w = new_ratings$sum_eff_poss, na.rm = TRUE)
     shared_center <- (mean_o + mean_d) / 2
     target_center <- (league_ortg + league_drtg) / 2
-    drift <- shared_center - target_center
+    drift         <- shared_center - target_center
     
     new_ratings <- new_ratings |>
       dplyr::mutate(
@@ -223,14 +239,14 @@ iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7,
   ratings
 }
 
-message("Running additive opponent-adjusted iteration with recency weighting (Torvik-style)...")
+message("Running ratings with home court adjustment (HCA = 3.5 pts)...")
 
 seasons <- sort(unique(game_pairs$season))
 
 adjusted_ratings <- purrr::map_dfr(seasons, function(s) {
   message("  Season ", s, " efficiency...")
   season_games <- game_pairs |> dplyr::filter(season == s)
-  eff <- iterate_efficiency(season_games)
+  eff <- iterate_efficiency(season_games, hca = 3.5)
   message("  Season ", s, " pace...")
   pace <- iterate_pace(season_games)
   eff |>

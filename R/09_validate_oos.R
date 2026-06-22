@@ -1,10 +1,11 @@
 library(dplyr)
 library(readr)
 
-raw       <- readr::read_csv("data/raw/wbb_team_box_raw.csv", show_col_types = FALSE)
-d1_ids    <- readr::read_csv("data/raw/d1_team_ids.csv",      show_col_types = FALSE)
-minutes   <- readr::read_csv("data/raw/game_minutes.csv",     show_col_types = FALSE)
-conf_data <- readr::read_csv("data/raw/conference_data.csv",  show_col_types = FALSE)
+raw       <- readr::read_csv("data/raw/wbb_team_box_raw.csv",  show_col_types = FALSE)
+d1_ids    <- readr::read_csv("data/raw/d1_team_ids.csv",       show_col_types = FALSE)
+minutes   <- readr::read_csv("data/raw/game_minutes.csv",      show_col_types = FALSE)
+conf_data <- readr::read_csv("data/raw/conference_data.csv",   show_col_types = FALSE)
+schedule  <- readr::read_csv("data/raw/game_schedule.csv",     show_col_types = FALSE)
 
 raw_d1 <- raw |>
   dplyr::inner_join(d1_ids, by = c("season", "team_id")) |>
@@ -20,7 +21,7 @@ game_stats <- raw_d1 |>
   ) |>
   dplyr::select(
     season, game_id, game_date, team_id, opponent_team_id,
-    team_score, opponent_team_score, poss
+    team_score, opponent_team_score, team_home_away, poss
   )
 
 game_pairs_full <- game_stats |>
@@ -37,6 +38,10 @@ game_pairs_full <- game_stats |>
     minutes |> dplyr::select(game_id, game_minutes),
     by = "game_id"
   ) |>
+  dplyr::left_join(
+    schedule |> dplyr::select(game_id, neutral_site),
+    by = "game_id"
+  ) |>
   dplyr::filter(!is.na(game_minutes)) |>
   dplyr::mutate(
     game_poss = (poss + opp_poss) / 2,
@@ -44,9 +49,6 @@ game_pairs_full <- game_stats |>
     raw_drtg  = 100 * opponent_team_score / game_poss,
     raw_pace  = game_poss / game_minutes * 40
   )
-
-game_pairs <- game_pairs |>
-  dplyr::mutate(eff_poss = game_poss)
 
 focus_season <- 2026
 
@@ -70,7 +72,7 @@ message("Holdout games (rows): ",   nrow(holdout_pairs))
 
 train_pairs <- train_pairs |> dplyr::mutate(eff_poss = game_poss)
 
-calculate_ratings <- function(game_pairs) {
+calculate_ratings <- function(game_pairs, hca = 3.5) {
   
   k_shrink      <- 100
   damping       <- 0.70
@@ -79,27 +81,37 @@ calculate_ratings <- function(game_pairs) {
   stable_needed <- 2
   
   scale_factor <- 100 / weighted.mean(game_pairs$raw_ortg, w = game_pairs$game_poss, na.rm = TRUE)
+  hca_scaled   <- hca * scale_factor
   
   game_pairs <- game_pairs |>
     dplyr::mutate(
       raw_ortg = raw_ortg * scale_factor,
-      raw_drtg = raw_drtg * scale_factor
+      raw_drtg = raw_drtg * scale_factor,
+      site_adj = dplyr::case_when(
+        neutral_site == TRUE     ~ 0,
+        team_home_away == "home" ~ hca_scaled / 2,
+        team_home_away == "away" ~ -hca_scaled / 2,
+        TRUE                     ~ 0
+      ),
+      raw_ortg_site = raw_ortg - site_adj,
+      raw_drtg_site = raw_drtg + site_adj
     )
   
-  league_ortg <- weighted.mean(game_pairs$raw_ortg, w = game_pairs$eff_poss, na.rm = TRUE)
-  league_drtg <- weighted.mean(game_pairs$raw_drtg, w = game_pairs$eff_poss, na.rm = TRUE)
-  league_pace <- weighted.mean(game_pairs$raw_pace,  w = game_pairs$eff_poss, na.rm = TRUE)
+  league_ortg <- weighted.mean(game_pairs$raw_ortg_site, w = game_pairs$eff_poss, na.rm = TRUE)
+  league_drtg <- weighted.mean(game_pairs$raw_drtg_site, w = game_pairs$eff_poss, na.rm = TRUE)
+  league_pace <- weighted.mean(game_pairs$raw_pace,       w = game_pairs$eff_poss, na.rm = TRUE)
   
   opp_map <- game_pairs |>
-    dplyr::select(team_id, opponent_team_id, game_poss, eff_poss, raw_ortg, raw_drtg, raw_pace)
+    dplyr::select(team_id, opponent_team_id, game_poss, eff_poss,
+                  raw_ortg_site, raw_drtg_site, raw_pace)
   
   team_ratings <- game_pairs |>
     dplyr::group_by(team_id) |>
     dplyr::summarise(
-      adj_ortg   = weighted.mean(raw_ortg, w = eff_poss, na.rm = TRUE),
-      adj_drtg   = weighted.mean(raw_drtg, w = eff_poss, na.rm = TRUE),
-      adj_pace   = weighted.mean(raw_pace,  w = eff_poss, na.rm = TRUE),
-      .groups    = "drop"
+      adj_ortg = weighted.mean(raw_ortg_site, w = eff_poss, na.rm = TRUE),
+      adj_drtg = weighted.mean(raw_drtg_site, w = eff_poss, na.rm = TRUE),
+      adj_pace = weighted.mean(raw_pace,       w = eff_poss, na.rm = TRUE),
+      .groups  = "drop"
     )
   
   stable_count <- 0
@@ -118,8 +130,8 @@ calculate_ratings <- function(game_pairs) {
         by = "opponent_team_id"
       ) |>
       dplyr::mutate(
-        game_adj_ortg = raw_ortg - (opp_adj_drtg - league_drtg),
-        game_adj_drtg = raw_drtg - (opp_adj_ortg - league_ortg)
+        game_adj_ortg = raw_ortg_site - (opp_adj_drtg - league_drtg),
+        game_adj_drtg = raw_drtg_site - (opp_adj_ortg - league_ortg)
       )
     
     proposed <- game_adj |>
@@ -242,7 +254,7 @@ calculate_ratings <- function(game_pairs) {
 }
 
 message("\nBuilding ratings on training data (pre-cutoff)...")
-train_ratings <- calculate_ratings(train_pairs)
+train_ratings <- calculate_ratings(train_pairs, hca = 3.5)
 
 holdout_scored <- holdout_pairs |>
   dplyr::left_join(
@@ -270,14 +282,14 @@ oos_metrics <- holdout_scored |>
   )
 
 message("\n========================================")
-message("  OUT-OF-SAMPLE VALIDATION RESULTS")
+message("  OUT-OF-SAMPLE VALIDATION RESULTS (HCA = 3.5)")
 message("  Cutoff: ", cutoff_date, " | Season: ", focus_season)
 message("========================================")
 message("  Holdout games:  ", oos_metrics$n_games)
 message("  MAE:            ", round(oos_metrics$mae, 3),
-        "   (baseline: 10.093)")
+        "   (baseline: 10.045)")
 message("  RMSE:           ", round(oos_metrics$rmse, 3),
-        "   (baseline: 12.783)")
+        "   (baseline: 12.745)")
 message("  Correlation:    ", round(oos_metrics$correlation, 3),
         "   (baseline: 0.802)")
 message("  Bias:           ", round(oos_metrics$bias, 3),
