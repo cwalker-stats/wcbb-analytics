@@ -192,7 +192,7 @@ iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7,
     game_adj <- opp_map |>
       dplyr::left_join(opp_ratings, by = "opponent_team_id") |>
       dplyr::mutate(
-        game_adj_pace = raw_pace - (opp_adj_pace - league_pace)
+        game_adj_pace = raw_pace * league_pace / opp_adj_pace
       )
     
     proposed_ratings <- game_adj |>
@@ -216,7 +216,7 @@ iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7,
     mean_p <- weighted.mean(new_ratings$adj_pace, w = new_ratings$sum_eff_poss, na.rm = TRUE)
     
     new_ratings <- new_ratings |>
-      dplyr::mutate(adj_pace = adj_pace - (mean_p - league_pace)) |>
+      dplyr::mutate(adj_pace = adj_pace * league_pace / mean_p) |>
       dplyr::select(team_id, adj_pace)
     
     deltas <- abs(new_ratings$adj_pace - ratings$adj_pace)

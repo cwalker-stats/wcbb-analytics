@@ -200,7 +200,7 @@ calculate_ratings <- function(game_pairs, hca = 3.5) {
         team_ratings |> dplyr::select(opponent_team_id = team_id, opp_adj_pace = adj_pace),
         by = "opponent_team_id"
       ) |>
-      dplyr::mutate(game_adj_pace = raw_pace - (opp_adj_pace - league_pace))
+      dplyr::mutate(game_adj_pace = raw_pace * league_pace / opp_adj_pace)
     
     proposed_pace <- game_pace_adj |>
       dplyr::group_by(team_id) |>
@@ -223,7 +223,7 @@ calculate_ratings <- function(game_pairs, hca = 3.5) {
     mean_p <- weighted.mean(new_pace$adj_pace, w = new_pace$sum_eff_poss, na.rm = TRUE)
     
     new_pace <- new_pace |>
-      dplyr::mutate(adj_pace = adj_pace - (mean_p - league_pace)) |>
+      dplyr::mutate(adj_pace = adj_pace * league_pace / mean_p) |>
       dplyr::select(team_id, adj_ortg, adj_drtg, adj_pace)
     
     delta_p <- new_pace |>
