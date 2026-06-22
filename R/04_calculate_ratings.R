@@ -20,7 +20,7 @@ game_stats <- raw_d1 |>
     poss = field_goals_attempted - offensive_rebounds + total_turnovers + 0.44 * free_throws_attempted
   ) |>
   dplyr::select(
-    season, game_id, team_id, opponent_team_id,
+    season, game_id, game_date, team_id, opponent_team_id,
     team_score, opponent_team_score, poss
   )
 
@@ -48,19 +48,29 @@ game_pairs <- game_stats |>
 
 message("Game-level stats calculated. Games: ", nrow(game_pairs))
 
+game_pairs <- game_pairs |> dplyr::mutate(eff_poss = game_poss)
+
 iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7, k_shrink = 100) {
   
-  league_ortg <- weighted.mean(season_games$raw_ortg, w = season_games$game_poss, na.rm = TRUE)
-  league_drtg <- weighted.mean(season_games$raw_drtg, w = season_games$game_poss, na.rm = TRUE)
+  scale_factor <- 100 / weighted.mean(season_games$raw_ortg, w = season_games$game_poss, na.rm = TRUE)
+  
+  season_games <- season_games |>
+    dplyr::mutate(
+      raw_ortg = raw_ortg * scale_factor,
+      raw_drtg = raw_drtg * scale_factor
+    )
+  
+  league_ortg <- weighted.mean(season_games$raw_ortg, w = season_games$eff_poss, na.rm = TRUE)
+  league_drtg <- weighted.mean(season_games$raw_drtg, w = season_games$eff_poss, na.rm = TRUE)
   
   opp_map <- season_games |>
-    dplyr::select(team_id, opponent_team_id, game_poss, raw_ortg, raw_drtg)
+    dplyr::select(team_id, opponent_team_id, game_poss, eff_poss, raw_ortg, raw_drtg)
   
   ratings <- season_games |>
     dplyr::group_by(team_id) |>
     dplyr::summarise(
-      adj_ortg = weighted.mean(raw_ortg, w = game_poss, na.rm = TRUE),
-      adj_drtg = weighted.mean(raw_drtg, w = game_poss, na.rm = TRUE),
+      adj_ortg = weighted.mean(raw_ortg, w = eff_poss, na.rm = TRUE),
+      adj_drtg = weighted.mean(raw_drtg, w = eff_poss, na.rm = TRUE),
       .groups  = "drop"
     )
   
@@ -84,16 +94,15 @@ iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping 
     proposed_ratings <- game_adj |>
       dplyr::group_by(team_id) |>
       dplyr::summarise(
-        sum_poss      = sum(game_poss, na.rm = TRUE),
-        sum_ortg_poss = sum(game_adj_ortg * game_poss, na.rm = TRUE),
-        sum_drtg_poss = sum(game_adj_drtg * game_poss, na.rm = TRUE),
+        sum_eff_poss  = sum(eff_poss, na.rm = TRUE),
+        sum_ortg_poss = sum(game_adj_ortg * eff_poss, na.rm = TRUE),
+        sum_drtg_poss = sum(game_adj_drtg * eff_poss, na.rm = TRUE),
         .groups = "drop"
       ) |>
       dplyr::mutate(
-        adj_ortg = (sum_ortg_poss + k_shrink * league_ortg) / (sum_poss + k_shrink),
-        adj_drtg = (sum_drtg_poss + k_shrink * league_drtg) / (sum_poss + k_shrink)
-      ) |>
-      dplyr::select(team_id, adj_ortg, adj_drtg)
+        adj_ortg = (sum_ortg_poss + k_shrink * league_ortg) / (sum_eff_poss + k_shrink),
+        adj_drtg = (sum_drtg_poss + k_shrink * league_drtg) / (sum_eff_poss + k_shrink)
+      )
     
     new_ratings <- ratings |>
       dplyr::inner_join(proposed_ratings, by = "team_id", suffix = c("_old", "_new")) |>
@@ -101,16 +110,21 @@ iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping 
         adj_ortg = damping * adj_ortg_new + (1 - damping) * adj_ortg_old,
         adj_drtg = damping * adj_drtg_new + (1 - damping) * adj_drtg_old
       ) |>
-      dplyr::select(team_id, adj_ortg, adj_drtg)
+      dplyr::select(team_id, adj_ortg, adj_drtg, sum_eff_poss)
     
-    mean_o <- mean(new_ratings$adj_ortg, na.rm = TRUE)
-    mean_d <- mean(new_ratings$adj_drtg, na.rm = TRUE)
+    mean_o <- weighted.mean(new_ratings$adj_ortg, w = new_ratings$sum_eff_poss, na.rm = TRUE)
+    mean_d <- weighted.mean(new_ratings$adj_drtg, w = new_ratings$sum_eff_poss, na.rm = TRUE)
+    
+    shared_center <- (mean_o + mean_d) / 2
+    target_center <- (league_ortg + league_drtg) / 2
+    drift <- shared_center - target_center
     
     new_ratings <- new_ratings |>
       dplyr::mutate(
-        adj_ortg = adj_ortg - mean_o + league_ortg,
-        adj_drtg = adj_drtg - mean_d + league_drtg
-      )
+        adj_ortg = adj_ortg - drift,
+        adj_drtg = adj_drtg - drift
+      ) |>
+      dplyr::select(team_id, adj_ortg, adj_drtg)
     
     deltas <- c(
       abs(new_ratings$adj_ortg - ratings$adj_ortg),
@@ -132,20 +146,24 @@ iterate_efficiency <- function(season_games, n_iter = 100, tol = 0.005, damping 
     }
   }
   
-  ratings
+  ratings |>
+    dplyr::mutate(
+      adj_ortg = adj_ortg / scale_factor,
+      adj_drtg = adj_drtg / scale_factor
+    )
 }
 
 iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7, k_shrink = 100) {
   
-  league_pace <- weighted.mean(season_games$raw_pace, w = season_games$game_poss, na.rm = TRUE)
+  league_pace <- weighted.mean(season_games$raw_pace, w = season_games$eff_poss, na.rm = TRUE)
   
   opp_map <- season_games |>
-    dplyr::select(team_id, opponent_team_id, game_poss, raw_pace)
+    dplyr::select(team_id, opponent_team_id, game_poss, eff_poss, raw_pace)
   
   ratings <- season_games |>
     dplyr::group_by(team_id) |>
     dplyr::summarise(
-      adj_pace = weighted.mean(raw_pace, w = game_poss, na.rm = TRUE),
+      adj_pace = weighted.mean(raw_pace, w = eff_poss, na.rm = TRUE),
       .groups  = "drop"
     )
   
@@ -164,26 +182,26 @@ iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7,
     proposed_ratings <- game_adj |>
       dplyr::group_by(team_id) |>
       dplyr::summarise(
-        sum_poss      = sum(game_poss, na.rm = TRUE),
-        sum_pace_poss = sum(game_adj_pace * game_poss, na.rm = TRUE),
+        sum_eff_poss  = sum(eff_poss, na.rm = TRUE),
+        sum_pace_poss = sum(game_adj_pace * eff_poss, na.rm = TRUE),
         .groups = "drop"
       ) |>
       dplyr::mutate(
-        adj_pace = (sum_pace_poss + k_shrink * league_pace) / (sum_poss + k_shrink)
-      ) |>
-      dplyr::select(team_id, adj_pace)
+        adj_pace = (sum_pace_poss + k_shrink * league_pace) / (sum_eff_poss + k_shrink)
+      )
     
     new_ratings <- ratings |>
       dplyr::inner_join(proposed_ratings, by = "team_id", suffix = c("_old", "_new")) |>
       dplyr::mutate(
         adj_pace = damping * adj_pace_new + (1 - damping) * adj_pace_old
       ) |>
-      dplyr::select(team_id, adj_pace)
+      dplyr::select(team_id, adj_pace, sum_eff_poss)
     
-    mean_p <- mean(new_ratings$adj_pace, na.rm = TRUE)
+    mean_p <- weighted.mean(new_ratings$adj_pace, w = new_ratings$sum_eff_poss, na.rm = TRUE)
     
     new_ratings <- new_ratings |>
-      dplyr::mutate(adj_pace = adj_pace - mean_p + league_pace)
+      dplyr::mutate(adj_pace = adj_pace - (mean_p - league_pace)) |>
+      dplyr::select(team_id, adj_pace)
     
     deltas <- abs(new_ratings$adj_pace - ratings$adj_pace)
     median_change <- median(deltas, na.rm = TRUE)
@@ -205,7 +223,7 @@ iterate_pace <- function(season_games, n_iter = 100, tol = 0.005, damping = 0.7,
   ratings
 }
 
-message("Running additive opponent-adjusted iteration with shrinkage (KenPom-style)...")
+message("Running additive opponent-adjusted iteration with recency weighting (Torvik-style)...")
 
 seasons <- sort(unique(game_pairs$season))
 
@@ -269,16 +287,13 @@ wins_losses <- raw_d1 |>
   )
 
 final_ratings <- adjusted_ratings |>
-  dplyr::group_by(season) |>
   dplyr::mutate(
-    net_center = mean(adj_ortg - adj_drtg, na.rm = TRUE),
     ortg = round(adj_ortg, 1),
-    drtg = round(adj_drtg + net_center, 1),
-    net  = round(ortg - drtg, 1),
+    drtg = round(adj_drtg, 1),
+    net  = round(adj_ortg - adj_drtg, 1),
     pace = round(adj_pace, 1)
   ) |>
-  dplyr::ungroup() |>
-  dplyr::select(-adj_ortg, -adj_drtg, -adj_pace, -net_center) |>
+  dplyr::select(-adj_ortg, -adj_drtg, -adj_pace) |>
   dplyr::left_join(sos_metrics, by = c("season", "team_id")) |>
   dplyr::left_join(team_info,   by = c("season", "team_id")) |>
   dplyr::left_join(wins_losses, by = c("season", "team_id")) |>
