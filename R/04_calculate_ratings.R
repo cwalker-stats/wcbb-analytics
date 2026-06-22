@@ -320,6 +320,19 @@ final_ratings <- adjusted_ratings |>
   ) |>
   dplyr::arrange(season, dplyr::desc(net))
 
+sos_center <- final_ratings |>
+  dplyr::group_by(season) |>
+  dplyr::summarise(mean_sos = mean(sos, na.rm = TRUE), .groups = "drop")
+
+final_ratings <- final_ratings |>
+  dplyr::left_join(sos_center, by = "season") |>
+  dplyr::mutate(
+    sos  = round(sos  - mean_sos, 2),
+    osos = round(osos - mean_sos / 2, 2),
+    dsos = round(dsos - mean_sos / 2, 2)
+  ) |>
+  dplyr::select(-mean_sos)
+
 readr::write_csv(final_ratings, "data/processed/team_ratings.csv")
 jsonlite::write_json(final_ratings, "output/json/team_ratings.json", pretty = TRUE)
 
