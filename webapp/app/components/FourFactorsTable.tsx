@@ -44,14 +44,14 @@ const ADJ_COLUMNS: ColumnDef[] = [
 
 const OFF_COLUMNS: ColumnDef[] = [
   { key: "off_efg", label: "eFG%", ascending: false, tooltip: "Shooting efficiency, accounting for three-pointers." },
-  { key: "off_to_pct", label: "TOV%", ascending: true, tooltip: "Turnovers committed per possession." },
+  { key: "off_to_pct", label: "TOV%", ascending: true, tooltip: "Percentage of possessions that end in a turnover." },
   { key: "off_or_pct", label: "ORB%", ascending: false, tooltip: "Percentage of available offensive rebounds secured." },
   { key: "off_ftr", label: "FTr", ascending: false, tooltip: "Free throw attempts per field goal attempt." },
 ];
 
 const DEF_COLUMNS: ColumnDef[] = [
   { key: "def_efg", label: "eFG%", ascending: true, tooltip: "Opponent shooting efficiency, accounting for three-pointers." },
-  { key: "def_to_pct", label: "TOV%", ascending: false, tooltip: "Turnovers forced per opponent possession." },
+  { key: "def_to_pct", label: "TOV%", ascending: false, tooltip: "Percentage of opponent possessions that end in a turnover." },
   { key: "def_or_pct", label: "ORB%", ascending: true, tooltip: "Percentage of available offensive rebounds allowed." },
   { key: "def_ftr", label: "FTr", ascending: true, tooltip: "Opponent free throw attempts per field goal attempt." },
 ];

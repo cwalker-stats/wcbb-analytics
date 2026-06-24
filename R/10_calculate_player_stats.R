@@ -13,6 +13,7 @@ message("Rows loaded: ", nrow(player_raw))
 
 player_d1 <- player_raw |>
   dplyr::filter(!did_not_play, !is.na(minutes), minutes > 0) |>
+  dplyr::mutate(minutes = dplyr::if_else(minutes > 80, minutes / 60, minutes)) |>
   dplyr::inner_join(
     d1_ids |> dplyr::select(season, team_id),
     by = c("season", "team_id")
@@ -27,20 +28,20 @@ message("D1 player-game rows: ", nrow(player_d1))
 team_totals <- player_d1 |>
   dplyr::group_by(game_id, team_id) |>
   dplyr::summarise(
-    team_mp  = sum(minutes,                        na.rm = TRUE),
-    team_fgm = sum(field_goals_made,               na.rm = TRUE),
-    team_fga = sum(field_goals_attempted,          na.rm = TRUE),
-    team_3pm = sum(three_point_field_goals_made,   na.rm = TRUE),
+    team_mp  = sum(minutes,                           na.rm = TRUE),
+    team_fgm = sum(field_goals_made,                  na.rm = TRUE),
+    team_fga = sum(field_goals_attempted,             na.rm = TRUE),
+    team_3pm = sum(three_point_field_goals_made,      na.rm = TRUE),
     team_3pa = sum(three_point_field_goals_attempted, na.rm = TRUE),
-    team_ftm = sum(free_throws_made,               na.rm = TRUE),
-    team_fta = sum(free_throws_attempted,          na.rm = TRUE),
-    team_orb = sum(offensive_rebounds,             na.rm = TRUE),
-    team_drb = sum(defensive_rebounds,             na.rm = TRUE),
-    team_ast = sum(assists,                        na.rm = TRUE),
-    team_tov = sum(turnovers,                      na.rm = TRUE),
-    team_pts = sum(points,                         na.rm = TRUE),
-    team_stl = sum(steals,                         na.rm = TRUE),
-    team_blk = sum(blocks,                         na.rm = TRUE),
+    team_ftm = sum(free_throws_made,                  na.rm = TRUE),
+    team_fta = sum(free_throws_attempted,             na.rm = TRUE),
+    team_orb = sum(offensive_rebounds,                na.rm = TRUE),
+    team_drb = sum(defensive_rebounds,                na.rm = TRUE),
+    team_ast = sum(assists,                           na.rm = TRUE),
+    team_tov = sum(turnovers,                         na.rm = TRUE),
+    team_pts = sum(points,                            na.rm = TRUE),
+    team_stl = sum(steals,                            na.rm = TRUE),
+    team_blk = sum(blocks,                            na.rm = TRUE),
     .groups  = "drop"
   )
 
@@ -74,8 +75,8 @@ opp_poss_data <- team_box |>
   dplyr::select(game_id, opponent_team_id = team_id, opp_poss)
 
 player_games <- player_d1 |>
-  dplyr::left_join(team_totals,   by = c("game_id", "team_id")) |>
-  dplyr::left_join(opp_totals,    by = c("game_id", "opponent_team_id")) |>
+  dplyr::left_join(team_totals,    by = c("game_id", "team_id")) |>
+  dplyr::left_join(opp_totals,     by = c("game_id", "opponent_team_id")) |>
   dplyr::left_join(team_poss_data, by = c("game_id", "team_id")) |>
   dplyr::left_join(opp_poss_data,  by = c("game_id", "opponent_team_id"))
 
@@ -211,13 +212,6 @@ player_games <- player_games |>
       NA_real_
     ),
     
-    team_ts = dplyr::if_else(
-      !is.na(team_pts) & !is.na(team_fga) & !is.na(team_fta) &
-        (team_fga + 0.44 * team_fta) > 0,
-      team_pts / (2 * (team_fga + 0.44 * team_fta)),
-      NA_real_
-    ),
-    rel_ts = dplyr::if_else(!is.na(ts_pct) & !is.na(team_ts), ts_pct - team_ts, NA_real_)
   )
 
 message("Aggregating to season level...")
@@ -237,32 +231,32 @@ normalize_position <- function(pos) {
 player_season <- player_games |>
   dplyr::group_by(
     season, athlete_id, athlete_display_name, team_id, team_display_name,
-    team_abbreviation, conference_short, athlete_headshot_href,
+    team_abbreviation, team_location, conference_short, athlete_headshot_href,
     athlete_position_abbreviation
   ) |>
   dplyr::summarise(
     gp            = dplyr::n(),
-    gs            = sum(starter,                       na.rm = TRUE),
-    total_min     = sum(minutes,                       na.rm = TRUE),
-    total_pts     = sum(points,                        na.rm = TRUE),
-    total_fgm     = sum(field_goals_made,              na.rm = TRUE),
-    total_fga     = sum(field_goals_attempted,         na.rm = TRUE),
-    total_3pm     = sum(three_point_field_goals_made,  na.rm = TRUE),
+    gs            = sum(starter,                          na.rm = TRUE),
+    total_min     = sum(minutes,                          na.rm = TRUE),
+    total_pts     = sum(points,                           na.rm = TRUE),
+    total_fgm     = sum(field_goals_made,                 na.rm = TRUE),
+    total_fga     = sum(field_goals_attempted,            na.rm = TRUE),
+    total_3pm     = sum(three_point_field_goals_made,     na.rm = TRUE),
     total_3pa     = sum(three_point_field_goals_attempted, na.rm = TRUE),
-    total_ftm     = sum(free_throws_made,              na.rm = TRUE),
-    total_fta     = sum(free_throws_attempted,         na.rm = TRUE),
-    total_orb     = sum(offensive_rebounds,            na.rm = TRUE),
-    total_drb     = sum(defensive_rebounds,            na.rm = TRUE),
-    total_reb     = sum(rebounds,                      na.rm = TRUE),
-    total_ast     = sum(assists,                       na.rm = TRUE),
-    total_stl     = sum(steals,                        na.rm = TRUE),
-    total_blk     = sum(blocks,                        na.rm = TRUE),
-    total_tov     = sum(turnovers,                     na.rm = TRUE),
-    total_fouls   = sum(fouls,                         na.rm = TRUE),
-    total_2pm     = sum(two_point_made,                na.rm = TRUE),
-    total_2pa     = sum(two_point_attempted,           na.rm = TRUE),
-    total_poss    = sum(poss_used,                     na.rm = TRUE),
-    total_gs_raw  = sum(game_score,                    na.rm = TRUE),
+    total_ftm     = sum(free_throws_made,                 na.rm = TRUE),
+    total_fta     = sum(free_throws_attempted,            na.rm = TRUE),
+    total_orb     = sum(offensive_rebounds,               na.rm = TRUE),
+    total_drb     = sum(defensive_rebounds,               na.rm = TRUE),
+    total_reb     = sum(rebounds,                         na.rm = TRUE),
+    total_ast     = sum(assists,                          na.rm = TRUE),
+    total_stl     = sum(steals,                           na.rm = TRUE),
+    total_blk     = sum(blocks,                           na.rm = TRUE),
+    total_tov     = sum(turnovers,                        na.rm = TRUE),
+    total_fouls   = sum(fouls,                            na.rm = TRUE),
+    total_2pm     = sum(two_point_made,                   na.rm = TRUE),
+    total_2pa     = sum(two_point_attempted,              na.rm = TRUE),
+    total_poss    = sum(poss_used,                        na.rm = TRUE),
+    total_gs_raw  = sum(game_score,                       na.rm = TRUE),
     avg_ast_pct   = mean(ast_pct,    na.rm = TRUE),
     avg_orb_pct   = mean(orb_pct,    na.rm = TRUE),
     avg_drb_pct   = mean(drb_pct,    na.rm = TRUE),
@@ -272,7 +266,6 @@ player_season <- player_games |>
     avg_to_econ   = mean(to_economy, na.rm = TRUE),
     avg_net_play  = mean(net_play,   na.rm = TRUE),
     avg_off_load  = mean(off_load,   na.rm = TRUE),
-    avg_rel_ts    = mean(rel_ts,     na.rm = TRUE),
     avg_vers      = mean(versatility, na.rm = TRUE),
     avg_ppr       = mean(ppr,        na.rm = TRUE),
     .groups = "drop"
@@ -314,7 +307,7 @@ player_season <- player_games |>
     ast_to  = round(dplyr::if_else(total_tov > 0,
                                    total_ast / total_tov, NA_real_), 2),
     
-    stocks_40    = round((total_stl + total_blk) / total_min * 40, 2),
+    stocks_40     = round((total_stl + total_blk) / total_min * 40, 2),
     game_score_40 = round(total_gs_raw / total_min * 40, 2),
     
     ast_pct     = round(avg_ast_pct,  1),
@@ -326,7 +319,6 @@ player_season <- player_games |>
     to_economy  = round(avg_to_econ,  3),
     net_play    = round(avg_net_play, 1),
     off_load    = round(avg_off_load, 3),
-    rel_ts      = round(avg_rel_ts,   3),
     versatility = round(avg_vers,     2),
     ppr         = round(avg_ppr,      2),
     
@@ -416,7 +408,7 @@ player_season <- player_season |>
     -season_bpm_mean, -season_games,
     -avg_ast_pct, -avg_orb_pct, -avg_drb_pct, -avg_trb_pct,
     -avg_stl_pct, -avg_blk_pct, -avg_to_econ, -avg_net_play,
-    -avg_off_load, -avg_rel_ts, -avg_vers, -avg_ppr,
+    -avg_off_load, -avg_vers, -avg_ppr,
     -athlete_position_abbreviation
   )
 
@@ -430,7 +422,7 @@ message("Done! Records: ", nrow(player_season))
 player_season |>
   dplyr::filter(season == 2026, qualified) |>
   dplyr::arrange(desc(bpm)) |>
-  dplyr::select(athlete_display_name, team_abbreviation, position,
+  dplyr::select(athlete_display_name, team_location, position,
                 gp, mpg, bpm, obpm, dbpm, vorp, win_shares, ts_pct, ast_pct) |>
   dplyr::slice_head(n = 10) |>
   print()
@@ -438,12 +430,12 @@ player_season |>
 player_season |>
   dplyr::filter(season == 2026, qualified) |>
   dplyr::summarise(
-    mean_bpm      = round(weighted.mean(bpm, w = total_min, na.rm = TRUE), 3),
-    mean_ts       = round(mean(ts_pct,  na.rm = TRUE), 3),
-    max_drb       = round(max(drb_pct,  na.rm = TRUE), 1),
-    max_orb       = round(max(orb_pct,  na.rm = TRUE), 1),
-    max_stl       = round(max(stl_pct,  na.rm = TRUE), 1),
-    max_blk       = round(max(blk_pct,  na.rm = TRUE), 1),
-    n_players     = dplyr::n()
+    mean_bpm  = round(weighted.mean(bpm, w = total_min, na.rm = TRUE), 3),
+    mean_ts   = round(mean(ts_pct,  na.rm = TRUE), 3),
+    max_drb   = round(max(drb_pct,  na.rm = TRUE), 1),
+    max_orb   = round(max(orb_pct,  na.rm = TRUE), 1),
+    max_stl   = round(max(stl_pct,  na.rm = TRUE), 1),
+    max_blk   = round(max(blk_pct,  na.rm = TRUE), 1),
+    n_players = dplyr::n()
   ) |>
   print()

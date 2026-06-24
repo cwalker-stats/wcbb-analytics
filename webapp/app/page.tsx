@@ -6,9 +6,14 @@ import FourFactorsTable from "./components/FourFactorsTable";
 import OffShootingTable from "./components/OffShootingTable";
 import DefShootingTable from "./components/DefShootingTable";
 import MiscTable from "./components/MiscTable";
+import PlayerShootingTable from "./components/PlayerShootingTable";
+import PlayerPlaymakingTable from "./components/PlayerPlaymakingTable";
+import PlayerReboundingTable from "./components/PlayerReboundingTable";
+import PlayerAdvancedTable from "./components/PlayerAdvancedTable";
 
 const TOP_NAV = [
   { id: "team-stats", label: "Team Stats" },
+  { id: "player-stats", label: "Player Stats" },
 ];
 
 const SUB_NAV: Record<string, { id: string; label: string }[]> = {
@@ -18,6 +23,12 @@ const SUB_NAV: Record<string, { id: string; label: string }[]> = {
     { id: "off-shooting", label: "Off. Shooting" },
     { id: "def-shooting", label: "Def. Shooting" },
     { id: "misc", label: "Misc" },
+  ],
+  "player-stats": [
+    { id: "p-shooting", label: "Shooting" },
+    { id: "p-playmaking", label: "Playmaking" },
+    { id: "p-rebounding", label: "Rebounding & Defense" },
+    { id: "p-advanced", label: "Advanced" },
   ],
 };
 
@@ -137,6 +148,10 @@ export default function Home() {
         {activeTab === "off-shooting" && <OffShootingTable />}
         {activeTab === "def-shooting" && <DefShootingTable />}
         {activeTab === "misc" && <MiscTable />}
+        {activeTab === "p-shooting" && <PlayerShootingTable />}
+        {activeTab === "p-playmaking" && <PlayerPlaymakingTable />}
+        {activeTab === "p-rebounding" && <PlayerReboundingTable />}
+        {activeTab === "p-advanced" && <PlayerAdvancedTable />}
       </main>
 
       <footer style={{ borderTop: "1px solid var(--border)", padding: "1.5rem 2rem", textAlign: "center", fontSize: "0.75rem", color: "var(--text-muted)" }}>

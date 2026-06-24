@@ -52,8 +52,8 @@ const OFF_COLUMNS: ColumnDef[] = [
 ];
 
 const DEF_COLUMNS: ColumnDef[] = [
-    { key: "off_stl_pct", label: "STL%", ascending: false, tooltip: "Possessions ending in a steal.", decimals: 1 },
-    { key: "off_blk_pct", label: "BLK%", ascending: false, tooltip: "Two-point field goal attempts blocked.", decimals: 1 },
+    { key: "off_stl_pct", label: "STL%", ascending: false, tooltip: "Percentage of opponent possessions resulting in a steal.", decimals: 1 },
+    { key: "off_blk_pct", label: "BLK%", ascending: false, tooltip: "Percentage of opponent shots blocked.", decimals: 1 },
     { key: "def_ast_pct", label: "AST%", ascending: true, tooltip: "Opponent share of field goals assisted.", decimals: 1 },
     { key: "def_ato", label: "A/TO", ascending: true, tooltip: "Opponent assists per turnover.", decimals: 2 },
     { key: "def_ft_pct", label: "FT%", ascending: true, tooltip: "Opponent free throws made per attempt.", decimals: 1 },
